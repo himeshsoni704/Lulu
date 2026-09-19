@@ -1,0 +1,135 @@
+{
+  "company_info": {
+    "name": "Al Lulu Packaging (AL LULU PACKING & PACKAGING MAT.CO. LLC)",
+    "tagline": "PACKAGING SOLUTIONS BUILT FOR BUSINESS.",
+    "location": "Industrial Area #5, Sharjah, United Arab Emirates",
+    "established": 2013,
+    "contact": {
+      "phone": "+971 6 543 2100",
+      "whatsapp": "+971 50 123 4567",
+      "email": "info@allulupackaging.ae",
+      "address": "Warehouse 14 & 15, Street 12, Industrial Area #5, Sharjah, UAE"
+    }
+  },
+  "brand_identity": {
+    "aesthetic": "Award-winning Industrial B2B Luxury & Craft, Tactile Kraft & Charcoal Architecture",
+    "archetype": "Swiss & Industrial Precision with Tactile Kraft Paper Warmth",
+    "signature_elements": [
+      "Tactile corrugated texture overlays & paper grain accents",
+      "Packaging-tape signature rule lines on section headings (mimicking brown kraft tape and clear sealing tape)",
+      "Box Dieline wireframe overlays on hero & product spotlight cards",
+      "Sequential interaction hierarchy: BOXES -> TAPE -> LABELS -> QUOTATIONS",
+      "Minimalist warehouse worker seal-tape submission animation in B2B Quotation Form"
+    ]
+  },
+  "typography": {
+    "heading_font": {
+      "family": "Syne, 'Clash Display', sans-serif",
+      "google_font_import": "https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap",
+      "usage": "Main Hero titles, Section Headings (H1-H3), Manifesto numbers",
+      "style": "tracking-tight uppercase font-extrabold"
+    },
+    "body_font": {
+      "family": "'Plus Jakarta Sans', sans-serif",
+      "usage": "Paragraphs, descriptions, navigational items, form labels",
+      "style": "text-slate-700 leading-relaxed font-normal"
+    },
+    "mono_font": {
+      "family": "'JetBrains Mono', monospace",
+      "usage": "Technical specs, dimensions, GSM weights, product SKUs, badges, manifesto chapter markers",
+      "style": "uppercase tracking-widest text-xs font-mono"
+    },
+    "scale": {
+      "hero_h1": "text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.08] tracking-tight",
+      "section_h2": "text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight",
+      "card_h3": "text-lg sm:text-xl font-semibold",
+      "body_text": "text-base sm:text-sm text-slate-600 leading-relaxed",
+      "badge_label": "text-xs font-mono uppercase tracking-wider px-2.5 py-1 rounded-sm"
+    }
+  },
+  "colors": {
+    "palette": {
+      "background_primary": "#F8F6F0",
+      "background_paper": "#F0EEE6",
+      "background_dark": "#121619",
+      "card_bg": "#FFFFFF",
+      "kraft_accent": "#A05A2C",
+      "kraft_accent_hover": "#8B4513",
+      "kraft_light": "#E6D7C3",
+      "industrial_charcoal": "#1A202C",
+      "border_subtle": "#E2DFD5",
+      "text_primary": "#121619",
+      "text_muted": "#64748B",
+      "text_light": "#F8F6F0",
+      "tape_yellow": "#D9A036"
+    },
+    "theme_rules": {
+      "light_theme_default": "Warm off-white bone background (#F8F6F0) with deep industrial charcoal (#121619) text and kraft paper brown (#A05A2C) accents",
+      "dark_theme_sections": "Used for Hero footer, B2B Quotation drawer modal, and Footer",
+      "forbidden_colors": ["#7351B7 (purple gradients)", "#1B93A4 (teal)", "pure bright blue SaaS gradients", "flat black #000000 without warm tint"]
+    }
+  },
+  "image_urls": {
+    "hero_corrugated": "https://images.pexels.com/photos/28316095/pexels-photo-28316095.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "stacked_boxes": "https://images.pexels.com/photos/17260158/pexels-photo-17260158.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "tape_sealing": "https://images.pexels.com/photos/6169019/pexels-photo-6169019.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "tape_sealing_close": "https://images.pexels.com/photos/6169031/pexels-photo-6169031.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "warehouse_aisle": "https://images.unsplash.com/photo-1672552226604-4ab36b7e5ca6?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTJ8MHwxfHNlYXJjaHwzfHxjYXJkYm9hcmQlMjBib3glMjBzaGlwcGluZyUyMHdhcmVob3VzZSUyMHdvcmtlciUyMGxvZ2lzdGljc3xlbnwwfHx8fDE3ODk4MzM5ODR8MA&ixlib=rb-4.1.0&q=85",
+    "forklift_logistics": "https://images.unsplash.com/photo-1576669801820-a9ab287ac2d1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTJ8MHwxfHNlYXJjaHwyfHxjYXJkYm9hcmQlMjBib3glMjBzaGlwcGluZyUyMHdhcmVob3VzZSUyMHdvcmtlciUyMGxvZ2lzdGljc3xlbnwwfHx8fDE3ODk4MzM5ODR8MA&ixlib=rb-4.1.0&q=85",
+    "warehouse_courier": "https://images.pexels.com/photos/6169044/pexels-photo-6169044.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "delivery_team": "https://images.pexels.com/photos/4487484/pexels-photo-4487484.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+  },
+  "catalogue_products": [
+    {"id": "corrugated-rolls", "name": "Corrugated Rolls", "category": "Corrugated & Boxes", "description": "High-shock absorption fluted kraft paper rolls engineered for surface protection and heavy wrapping in transit.", "badge": "High Demand", "moq": "10 Rolls"},
+    {"id": "corrugated-boxes", "name": "Corrugated Boxes", "category": "Corrugated & Boxes", "description": "Heavy-duty 3-ply and 5-ply RSC corrugated shipping containers custom built for industrial export integrity.", "badge": "Custom Sizes", "moq": "500 Pcs"},
+    {"id": "corrugated-sheets", "name": "Corrugated Sheets", "category": "Corrugated & Boxes", "description": "Rigid single and double wall corrugated pads used as layer separators and pallet top protection.", "badge": "Heavy Duty", "moq": "200 Sheets"},
+    {"id": "file-storage-boxes", "name": "File Storage Boxes", "category": "Corrugated & Boxes", "description": "Archival document boxes with reinforced hand-holds and dual-wall crash bottoms for corporate record storage.", "badge": "Corporate Standard", "moq": "100 Pcs"},
+    {"id": "pizza-boxes", "name": "Pizza Boxes", "category": "Food Packaging", "description": "Food-grade ventilated E-Flute and B-Flute pizza cartons engineered to retain thermal crispness without moisture buildup.", "badge": "Food Grade", "moq": "1000 Pcs"},
+    {"id": "e-flute-sheets", "name": "E-Flute Sheets", "category": "Corrugated & Boxes", "description": "Micro-flute sheets ideal for fine litho-laminated luxury retail packaging and crisp printing surfaces.", "badge": "Precision Flute", "moq": "300 Sheets"},
+    {"id": "masking-tapes", "name": "Masking Tapes", "category": "Tapes & Adhesives", "description": "Premium saturated crepe paper masking tapes with residue-free natural rubber adhesive for auto & industrial paint lines.", "badge": "Industrial Grade", "moq": "36 Rolls"},
+    {"id": "bopp-tapes", "name": "BOPP Tapes", "category": "Tapes & Adhesives", "description": "High-tack water-based acrylic & hotmelt packaging tapes available in transparent, brown kraft, and custom logo prints.", "badge": "High Tack", "moq": "72 Rolls"},
+    {"id": "bubble-rolls", "name": "Bubble Rolls", "category": "Protective Materials", "description": "Shock-absorbing air bubble film rolls engineered to cushion fragile electronics, glass, and automotive parts.", "badge": "Cushioning", "moq": "5 Rolls"},
+    {"id": "stretch-films", "name": "Stretch Films", "category": "Protective Materials", "description": "High-elongation cast and blown stretch wrap film rolls for hand and machine pallet unitization.", "badge": "Puncture Resistant", "moq": "12 Rolls"},
+    {"id": "edge-protector", "name": "Edge Protector", "category": "Protective Materials", "description": "Heavy paperboard V-shape angle boards providing stack strength and protection against strap tension damage.", "badge": "Pallet Guard", "moq": "500 Meters"},
+    {"id": "paper-core", "name": "Paper Core", "category": "Industrial Cores", "description": "High-crush resistance spiral wound paper tubes used for winding films, textiles, paper, and foil rolls.", "badge": "Custom Diameter", "moq": "100 Pcs"},
+    {"id": "pp-strap", "name": "PP Strap", "category": "Tapes & Adhesives", "description": "Embossed polypropylene strapping bands engineered for high tensile strength in semi-automatic and automatic strapping machines.", "badge": "High Tensile", "moq": "10 Rolls"},
+    {"id": "custom-printed-boxes", "name": "Custom Printed Boxes", "category": "Corrugated & Boxes", "description": "Bespoke flexographic and offset printed packaging showcasing your corporate brand identity right from the box.", "badge": "Bespoke Flexo", "moq": "1000 Pcs"},
+    {"id": "heavy-duty-crates", "name": "Heavy Duty Octabin Crates", "category": "Corrugated & Boxes", "description": "Multi-wall heavy bulk octabins designed to carry up to 1000kg of granular materials and heavy equipment.", "badge": "1000kg Load", "moq": "50 Pcs"},
+    {"id": "kraft-paper-rolls", "name": "Pure Kraft Paper Rolls", "category": "Corrugated & Boxes", "description": "Unbleached virgin kraft paper rolls for industrial wrapping, interleaving, and eco-friendly void filling.", "badge": "100% Recyclable", "moq": "10 Rolls"}
+  ],
+  "trust_clients": [
+    "Mercedes-Benz", "SAFCO", "Danube", "Mitsubishi", "Al Ghurair", "Al Gurg FOSROC", "K-Flex Gulf Manufacturing", "General Motors"
+  ],
+  "layout_and_sections": {
+    "persistent_header": "Floating Glassmorphism Header with warm tint (bg-[#121619]/90 or bg-white/80 backdrop-blur-md) with Logo, links (Home, Products, What We Do, Industries, About, Contact), CTA 'Request Quote' button + WhatsApp icon button",
+    "hero_section": "Editorial text banner with masked line reveal 'PACKAGING SOLUTIONS BUILT FOR BUSINESS.', subtle 3D-tilt box hero preview, key metrics (11+ Years in UAE, 16+ Catalogue Categories, 500+ B2B Clients), and CTA buttons",
+    "marquee": "Slow editorial moving marquee with industrial packaging terms: 'CORRUGATED BOXES • HIGH TACK TAPES • BUBBLE WRAP • STRETCH FILMS • PALLET GUARDS • SHARJAH INDUSTRIAL #5'",
+    "trust_section": "Understated monochrome grid/flex display of client logos/names with explicit caption: 'Trusted suppliers across UAE industrial supply chains. Logo placement implies supply relation without endorsed partnership claims.'",
+    "manifesto_chapters": [
+      {"chapter": "01", "title": "Engineered for UAE Logistics", "text": "Specially formulated fluting and adhesives tested for Gulf thermal endurance and humidity resistance."},
+      {"chapter": "02", "title": "Factory-Direct Precision", "text": "Operating directly out of Industrial Area #5, Sharjah with zero intermediary delays and direct dispatch."},
+      {"chapter": "03", "title": "Scalable B2B Volume", "text": "From small batch customized die-cuts to high-tonnage bulk shipments for enterprise supply chains."}
+    ],
+    "what_we_do": "Capability breakdown: 1. Custom Box Manufacturing, 2. Industrial Tape & Strapping, 3. Cushioning & Protective Wrapping, 4. Pallet Unitization Solutions.",
+    "product_catalogue": "Filterable B2B product showcase with category tabs, search input, GSM/thickness specs, MOQ badges, quick quote request buttons, and modal detail views.",
+    "b2b_quotation_form": "Grouped form with step-tabs: '1. Your Details', '2. What Do You Need (Products & Quantities)', '3. Additional Specifications'. Upon submit, displays the 2.5s minimal warehouse box-sealing tape animation.",
+    "rocky_ai_assistant": "Floating AI assistant widget 'Rocky' in lower right corner for quick product guidance, MOQ queries, and WhatsApp instant routing.",
+    "floating_whatsapp": "Persistent green WhatsApp quick-dial button with tooltip 'Direct Sharjah Warehouse Hotline'",
+    "contact_map": "Sharjah Industrial Area #5 location map block, address details, direct call links, and working hours (Sat-Thu: 8:00 AM - 6:00 PM).",
+    "footer": "Deep charcoal background (#121619) with massive typographic brand mark 'AL LULU PACKAGING', quick links, compliance statement, and copyright 2026."
+  },
+  "testing_guidelines": {
+    "required_testids": "All buttons, links, search inputs, modal triggers, form fields, filter tabs, and AI chat components MUST include data-testid in kebab-case format.",
+    "examples": [
+      "data-testid='nav-request-quote-button'",
+      "data-testid='nav-whatsapp-link'",
+      "data-testid='product-search-input'",
+      "data-testid='product-category-tab-corrugated'",
+      "data-testid='product-card-corrugated-boxes'",
+      "data-testid='quote-form-submit-button'",
+      "data-testid='rocky-ai-chat-toggle'",
+      "data-testid='rocky-ai-chat-input'",
+      "data-testid='floating-whatsapp-button'"
+    ]
+  }
+}
