@@ -5,7 +5,14 @@ from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, ConfigDict, BeforeValidator
 from typing import Annotated, List, Optional
-from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
+try:
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
+except ImportError:
+    LlmChat = None
+    UserMessage = None
+    TextDelta = None
+    StreamDone = None
+
 import os
 import logging
 import uuid
@@ -19,14 +26,42 @@ import jwt
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("allulu-backend")
+
 from data import COMPANY, CATEGORIES, PRODUCTS, PRODUCT_INDEX
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
+client = AsyncIOMotorClient(mongo_url, serverSelectionTimeoutMS=2000)
+db = client[os.environ.get('DB_NAME', 'allulu_packaging')]
+
+# ---------- Local file-based storage fallback ----------
+LOCAL_DATA_DIR = ROOT_DIR / "local_data"
+LOCAL_DATA_DIR.mkdir(exist_ok=True)
+QUOTES_FILE = LOCAL_DATA_DIR / "quotes.json"
+CONTACTS_FILE = LOCAL_DATA_DIR / "contacts.json"
+
+
+def _load_json(file_path: Path) -> list:
+    if not file_path.exists():
+        return []
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error(f"Error reading {file_path}: {e}")
+        return []
+
+
+def _save_json(file_path: Path, data: list):
+    try:
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, default=str)
+    except Exception as e:
+        logger.error(f"Error writing to {file_path}: {e}")
 
 # ---------- Emergent object storage ----------
 import requests
@@ -149,16 +184,37 @@ async def create_quote(
     if file and file.filename:
         data = await file.read()
         ext = file.filename.split(".")[-1].lower() if "." in file.filename else "bin"
-        path = f"{APP_NAME}/uploads/quotes/{uuid.uuid4().hex}.{ext}"
+        unique_name = f"{uuid.uuid4().hex}.{ext}"
         try:
+            path = f"{APP_NAME}/uploads/quotes/{unique_name}"
             result = put_object(path, data, file.content_type or "application/octet-stream")
             doc["file_name"] = file.filename[:120]
             doc["file_path"] = result.get("path", path)
         except Exception as e:
-            logger.error(f"File upload failed: {e}")
+            logger.warning(f"Remote storage unavailable ({e}), saving file locally.")
+            local_upload_dir = ROOT_DIR / "uploads"
+            local_upload_dir.mkdir(exist_ok=True)
+            local_file_path = local_upload_dir / unique_name
+            try:
+                with open(local_file_path, "wb") as f_out:
+                    f_out.write(data)
+                doc["file_name"] = file.filename[:120]
+                doc["file_path"] = f"local:{unique_name}"
+            except Exception as write_err:
+                logger.error(f"Local file write failed: {write_err}")
 
-    result = await db.quotes.insert_one(doc)
-    return {"ok": True, "id": str(result.inserted_id)}
+    try:
+        result = await db.quotes.insert_one(doc)
+        inserted_id = str(result.inserted_id)
+    except Exception as e:
+        logger.warning(f"MongoDB unavailable ({e}), persisting quote to local JSON storage.")
+        inserted_id = str(uuid.uuid4())
+        doc["_id"] = inserted_id
+        items = _load_json(QUOTES_FILE)
+        items.insert(0, doc)
+        _save_json(QUOTES_FILE, items)
+
+    return {"ok": True, "id": inserted_id}
 
 
 @api_router.post("/contact")
@@ -169,8 +225,18 @@ async def create_contact(input: ContactCreate):
         raise HTTPException(status_code=422, detail="A valid email is required")
     doc = input.model_dump()
     doc.update({"name": input.name.strip(), "created_at": datetime.now(timezone.utc).isoformat()})
-    result = await db.contacts.insert_one(doc)
-    return {"ok": True, "id": str(result.inserted_id)}
+    try:
+        result = await db.contacts.insert_one(doc)
+        inserted_id = str(result.inserted_id)
+    except Exception as e:
+        logger.warning(f"MongoDB unavailable ({e}), persisting contact to local JSON storage.")
+        inserted_id = str(uuid.uuid4())
+        doc["_id"] = inserted_id
+        items = _load_json(CONTACTS_FILE)
+        items.insert(0, doc)
+        _save_json(CONTACTS_FILE, items)
+
+    return {"ok": True, "id": inserted_id}
 
 
 # ---------- Rocky (Gemini) ----------
@@ -210,8 +276,6 @@ STYLE:
 async def rocky_chat(body: RockyChat):
     gemini_key = os.environ.get("GEMINI_API_KEY")
     emergent_key = os.environ.get("EMERGENT_LLM_KEY")
-    if not gemini_key and not emergent_key:
-        raise HTTPException(status_code=500, detail="Gemini / LLM key not configured")
 
     prompt = body.message.strip()[:2000] or "Hello"
     system_instruction = build_rocky_system_message()
@@ -244,7 +308,7 @@ async def rocky_chat(body: RockyChat):
                                 yield f"data: {json.dumps({'delta': delta})}\n\n"
                         except Exception:
                             pass
-            else:
+            elif emergent_key and LlmChat is not None:
                 session_id = f"rocky-{body.session_id[:64]}"
                 chat = LlmChat(
                     api_key=emergent_key,
@@ -257,10 +321,18 @@ async def rocky_chat(body: RockyChat):
                         yield f"data: {json.dumps({'delta': ev.content})}\n\n"
                     elif isinstance(ev, StreamDone):
                         break
+            else:
+                fallback_msg = (
+                    "Hello! I'm Rocky, Al Lulu Packaging's assistant. "
+                    "To enable live AI answers, set GEMINI_API_KEY in backend/.env. "
+                    "You can also reach our team directly via WhatsApp (+971 6 530 0865) or submit a quote request!"
+                )
+                full = fallback_msg
+                yield f"data: {json.dumps({'delta': fallback_msg})}\n\n"
 
             yield f"data: {json.dumps({'done': True})}\n\n"
         except Exception as e:
-            logging.getLogger(__name__).error(f"Rocky error: {e}")
+            logger.error(f"Rocky error: {e}")
             full = "I'm not sure about that. Let me connect you with the Al Lulu team."
             yield f"data: {json.dumps({'delta': full})}\n\n"
             yield f"data: {json.dumps({'fallback': True, 'done': True})}\n\n"
@@ -336,25 +408,42 @@ async def admin_login(request: Request, body: AdminLogin):
 
 @api_router.get("/admin/quotations")
 async def admin_quotations(_: bool = Depends(admin_auth)):
-    docs = await db.quotes.find().sort("created_at", -1).to_list(500)
-    return {"quotations": [from_mongo(d) for d in docs]}
+    try:
+        docs = await db.quotes.find().sort("created_at", -1).to_list(500)
+        return {"quotations": [from_mongo(d) for d in docs]}
+    except Exception as e:
+        logger.warning(f"MongoDB unavailable ({e}), loading local quotations")
+        docs = _load_json(QUOTES_FILE)
+        return {"quotations": [from_mongo(d) for d in docs]}
 
 
 @api_router.get("/admin/contacts")
 async def admin_contacts(_: bool = Depends(admin_auth)):
-    docs = await db.contacts.find().sort("created_at", -1).to_list(500)
-    return {"contacts": [from_mongo(d) for d in docs]}
+    try:
+        docs = await db.contacts.find().sort("created_at", -1).to_list(500)
+        return {"contacts": [from_mongo(d) for d in docs]}
+    except Exception as e:
+        logger.warning(f"MongoDB unavailable ({e}), loading local contacts")
+        docs = _load_json(CONTACTS_FILE)
+        return {"contacts": [from_mongo(d) for d in docs]}
 
 
 @api_router.get("/admin/export")
 async def admin_export(type: str = "quotation", _: bool = Depends(admin_auth)):
     if type not in ("quotation", "contact"):
         raise HTTPException(status_code=422, detail="type must be quotation or contact")
-    col = db.quotes if type == "quotation" else db.contacts
-    docs = await col.find().sort("created_at", -1).to_list(1000)
+    try:
+        col = db.quotes if type == "quotation" else db.contacts
+        docs = await col.find().sort("created_at", -1).to_list(1000)
+    except Exception as e:
+        logger.warning(f"MongoDB unavailable ({e}), exporting from local storage")
+        target_file = QUOTES_FILE if type == "quotation" else CONTACTS_FILE
+        docs = _load_json(target_file)
+
     buf = io.StringIO()
     if docs:
-        writer = csv.DictWriter(buf, fieldnames=list(docs[0].keys()))
+        fieldnames = list(docs[0].keys())
+        writer = csv.DictWriter(buf, fieldnames=fieldnames)
         writer.writeheader()
         for d in docs:
             writer.writerow({k: str(v if v is not None else "") for k, v in d.items()})
@@ -367,18 +456,30 @@ async def admin_export(type: str = "quotation", _: bool = Depends(admin_auth)):
 
 @api_router.get("/files/{path:path}")
 async def admin_download_file(path: str, _: bool = Depends(admin_auth)):
+    # Check for local file upload first
+    clean_path = path.replace("local:", "")
+    local_file = ROOT_DIR / "uploads" / clean_path.split("/")[-1]
+    if local_file.exists():
+        with open(local_file, "rb") as f_in:
+            content = f_in.read()
+        return Response(
+            content=content,
+            media_type="application/octet-stream",
+            headers={"Content-Disposition": f"attachment; filename={local_file.name}"},
+        )
+
     try:
         key = init_storage()
         resp = requests.get(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key}, timeout=60)
         resp.raise_for_status()
+        filename = path.split("/")[-1]
+        return Response(
+            content=resp.content,
+            media_type="application/octet-stream",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
     except Exception:
         raise HTTPException(status_code=404, detail="File not available")
-    filename = path.split("/")[-1]
-    return Response(
-        content=resp.content,
-        media_type="application/octet-stream",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
-    )
 
 
 app.include_router(api_router)
@@ -390,10 +491,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
-    client.close()
+    try:
+        client.close()
+    except Exception:
+        pass

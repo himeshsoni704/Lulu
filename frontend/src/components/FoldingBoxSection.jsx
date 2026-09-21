@@ -42,37 +42,26 @@ export default function FoldingBoxSection() {
   const [autoRotate, setAutoRotate] = useState(true);
   const [zoomLevel, setZoomLevel] = useState(1);
 
-  // Active progress is manual override if recently clicked, otherwise scroll-driven
   const currentProgress = manualProgress !== null ? manualProgress : scrollProgress;
 
   useEffect(() => {
     const handleScroll = () => {
       const el = sectionRef.current;
       if (!el) return;
-
       const rect = el.getBoundingClientRect();
       const windowHeight = window.innerHeight;
       const totalScrollable = rect.height - windowHeight;
-
       if (totalScrollable <= 0) return;
-
-      // When the top of section hits the top of viewport:
       const scrolled = -rect.top;
       const progress = Math.max(0, Math.min(1, scrolled / totalScrollable));
       setScrollProgress(progress);
-
-      // If user starts scrolling again, resume scroll-driven progress
-      if (manualProgress !== null) {
-        setManualProgress(null);
-      }
+      if (manualProgress !== null) setManualProgress(null);
     };
-
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
   }, [manualProgress]);
 
-  // Current active stage
   const activeStage =
     currentProgress < 0.25 ? 1 : currentProgress < 0.55 ? 2 : currentProgress < 0.88 ? 3 : 4;
 
@@ -121,60 +110,22 @@ export default function FoldingBoxSection() {
           </div>
         </div>
 
-        {/* Center Canvas & Side Narrative */}
-        <div className="relative z-10 mx-auto flex flex-1 w-full max-w-[1400px] flex-col lg:flex-row items-center px-5 sm:px-8 lg:px-12">
-          {/* Left Narrative Column */}
-          <div className="w-full lg:w-[380px] shrink-0 pt-4 lg:pt-0 z-20">
-            <div className="space-y-3">
-              <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-tape">
-                Stage 0{activeStage} of 04
-              </p>
-              <h3 className="font-display text-2xl font-extrabold uppercase tracking-tight text-bone sm:text-3xl">
-                {STAGES[activeStage - 1].label}
-              </h3>
-              <p className="text-sm leading-relaxed text-bone/70">
-                {STAGES[activeStage - 1].desc}
-              </p>
-            </div>
+        {/* Stage label — shown above box */}
+        <div className="relative z-10 mx-auto w-full max-w-[1400px] px-5 pt-4 sm:px-8 lg:px-12">
+          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-tape">
+            Stage 0{activeStage} of 04
+          </p>
+          <h3 className="font-display text-xl font-extrabold uppercase tracking-tight text-bone sm:text-2xl">
+            {STAGES[activeStage - 1].label}
+          </h3>
+          <p className="text-sm leading-relaxed text-bone/60">
+            {STAGES[activeStage - 1].desc}
+          </p>
+        </div>
 
-            {/* Stage Selector Pills */}
-            <div className="mt-6 flex flex-wrap lg:flex-col gap-2">
-              {STAGES.map((s) => {
-                const isSelected = activeStage === s.id;
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() => setManualProgress(s.target)}
-                    className={`flex items-center gap-2.5 rounded px-3 py-2 text-left font-mono text-[11px] uppercase tracking-wider transition-all ${
-                      isSelected
-                        ? "bg-kraft text-bone shadow-md"
-                        : "border border-bone/10 bg-charcoal/40 text-bone/60 hover:border-bone/30 hover:text-bone"
-                    }`}
-                  >
-                    <span className="shrink-0">{isSelected ? <CheckCircle2 className="h-3.5 w-3.5" /> : `0${s.id}`}</span>
-                    <span className="truncate">{s.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Scroll Progress Meter */}
-            <div className="mt-6 hidden lg:block">
-              <div className="flex justify-between font-mono text-[9px] uppercase tracking-[0.2em] text-bone/40 mb-1.5">
-                <span>Fold Progress</span>
-                <span>{Math.round(currentProgress * 100)}%</span>
-              </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-bone/10">
-                <div
-                  className="h-full bg-kraft transition-all duration-150 ease-out"
-                  style={{ width: `${Math.round(currentProgress * 100)}%` }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Right: 3D Three.js Canvas Container */}
-          <div className="relative flex-1 h-[45vh] lg:h-[75vh] w-full min-w-0">
+        {/* Center Canvas */}
+        <div className="relative z-10 mx-auto flex flex-1 w-full max-w-[1400px] flex-col items-center px-5 sm:px-8 lg:px-12 min-h-0">
+          <div className="relative flex-1 h-full w-full min-h-0">
             <FoldingBoxErrorBoundary>
               <FoldingBox
                 progress={currentProgress}
@@ -229,10 +180,53 @@ export default function FoldingBoxSection() {
           </div>
         </div>
 
-        {/* Bottom Scroll Cue */}
-        <div className="relative z-10 mx-auto flex w-full max-w-[1400px] items-center justify-between px-5 pb-5 sm:px-8 lg:px-12 text-bone/40 font-mono text-[10px] uppercase tracking-[0.2em]">
-          <span>Corrugated Fluting Frequency: 5.0 • 3-Ply Board</span>
-          <span className="animate-pulse">↓ Continue scrolling down</span>
+        {/* Bottom Stage Steps Bar */}
+        <div className="relative z-10 w-full border-t border-bone/10 bg-charcoal/60 backdrop-blur-sm">
+          <div className="mx-auto max-w-[1400px] px-5 py-3 sm:px-8 lg:px-12">
+            {/* Progress bar */}
+            <div className="mb-3 flex items-center gap-3">
+              <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-bone/40">Fold Progress</span>
+              <div className="flex-1 h-1 overflow-hidden rounded-full bg-bone/10">
+                <div
+                  className="h-full bg-kraft transition-all duration-150 ease-out"
+                  style={{ width: `${Math.round(currentProgress * 100)}%` }}
+                />
+              </div>
+              <span className="font-mono text-[9px] text-bone/40 w-8 text-right">{Math.round(currentProgress * 100)}%</span>
+            </div>
+
+            {/* Steps */}
+            <div className="flex items-stretch gap-2 sm:gap-3">
+              {STAGES.map((s, idx) => {
+                const isActive = activeStage === s.id;
+                const isDone = activeStage > s.id;
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => setManualProgress(s.target)}
+                    className={`group flex flex-1 items-center gap-2 rounded px-2 py-2 sm:px-3 text-left transition-all ${
+                      isActive
+                        ? "bg-kraft text-bone shadow-md"
+                        : isDone
+                        ? "bg-bone/10 text-bone/50 hover:bg-bone/20 hover:text-bone"
+                        : "border border-bone/10 bg-transparent text-bone/40 hover:border-bone/30 hover:text-bone/70"
+                    }`}
+                  >
+                    <span className="shrink-0 font-mono text-[10px]">
+                      {isActive ? <CheckCircle2 className="h-3.5 w-3.5" /> : `0${s.id}`}
+                    </span>
+                    <span className="hidden sm:block font-mono text-[10px] uppercase tracking-wider truncate">
+                      {s.label}
+                    </span>
+                    {/* Connector arrow between steps */}
+                    {idx < STAGES.length - 1 && (
+                      <span className="ml-auto hidden lg:block font-mono text-[10px] text-bone/20">→</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
     </section>

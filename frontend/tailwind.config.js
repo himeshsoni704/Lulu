@@ -39,8 +39,8 @@ module.exports = {
         line: '#E2DFD5'
       },
       fontFamily: {
-        display: ['Syne', 'sans-serif'],
-        body: ['"Plus Jakarta Sans"', 'sans-serif'],
+        display: ['Outfit', 'sans-serif'],
+        body: ['Inter', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'monospace']
       },
       keyframes: {

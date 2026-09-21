@@ -18,7 +18,7 @@ body {
   margin: 0;
   background: var(--bone);
   color: var(--charcoal);
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -73,10 +73,15 @@ body {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.32'/%3E%3C/svg%3E");
 }
 
-/* ---------- marquee ---------- */
+/* ---------- text marquee ---------- */
 @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 .marquee-track { animation: marquee 48s linear infinite; will-change: transform; }
 .marquee:hover .marquee-track { animation-play-state: paused; }
+
+/* ---------- logo marquee ---------- */
+@keyframes logo-marquee { from { transform: translateX(0); } to { transform: translateX(-33.333%); } }
+.logo-marquee-track { animation: logo-marquee 38s linear infinite; will-change: transform; }
+.logo-marquee-wrapper:hover .logo-marquee-track { animation-play-state: paused; }
 
 /* ---------- scroll cue ---------- */
 @keyframes drop-line {

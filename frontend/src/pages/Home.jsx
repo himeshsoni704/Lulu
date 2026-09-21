@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
-import { ArrowRight, Package } from "lucide-react";
+import { ArrowRight, Package, MapPin } from "lucide-react";
 import {
   COMPANY, CLIENTS, CAPABILITIES, MANIFESTO, PRODUCTS, INDUSTRIES,
   MARQUEE_ITEMS, IMG, WA_GENERAL,
@@ -11,7 +11,8 @@ import TapeReveal from "../components/TapeReveal";
 import Marquee from "../components/Marquee";
 import ProductCard from "../components/ProductCard";
 import CTABand from "../components/CTABand";
-import FoldingBoxSection from "../components/FoldingBoxSection";
+import WayWeSupplySection from "../components/WayWeSupplySection";
+import ClientLogoMarquee from "../components/ClientLogoMarquee";
 
 const ease = [0.22, 1, 0.36, 1];
 const FEATURED = ["corrugated-boxes", "bopp-brown-tapes", "stretch-film-handgrade", "bubble-rolls", "pizza-boxes", "edge-protector"];
@@ -41,7 +42,7 @@ export default function Home() {
           <div className="min-w-0 lg:col-span-7">
             <Reveal y={14}>
               <div className="mb-7 flex items-center gap-3">
-                <img src="/logo-light.png" alt="Al Lulu Packaging" className="h-8 w-8 object-contain" />
+                <img src="/logo-light.png" alt="Al Lulu Packaging" className="h-12 w-12 object-contain" />
                 <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-tape">
                   {COMPANY.name} — Sharjah, UAE — Est. {COMPANY.established}
                 </span>
@@ -74,8 +75,8 @@ export default function Home() {
             <motion.div style={reduce ? {} : { y: imgY }} className="relative mt-2">
               <div className="dieline relative overflow-hidden rounded-sm shadow-2xl">
                 <img
-                  src={IMG.hero}
-                  alt="Corrugated packaging stocked at the Al Lulu warehouse in Sharjah"
+                  src={IMG.warehouseHigh}
+                  alt="Al Lulu Packaging warehouse — Industrial Area #5, Sharjah"
                   className="h-[320px] w-full object-cover sm:h-[420px] lg:h-[540px]"
                   fetchpriority="high"
                 />
@@ -97,10 +98,10 @@ export default function Home() {
 
       <Marquee items={MARQUEE_ITEMS} />
 
-      {/* ---------- CLIENTS ---------- */}
-      <section className="border-b border-line bg-bone" data-testid="clients-section">
-        <div className="mx-auto max-w-[1400px] px-5 py-16 sm:px-8 lg:px-12 lg:py-20">
-          <div className="mb-10 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+      {/* ---------- CLIENTS (logo marquee) ---------- */}
+      <section className="bg-bone" data-testid="clients-section">
+        <div className="mx-auto max-w-[1400px] px-5 pt-16 pb-6 sm:px-8 lg:px-12 lg:pt-20">
+          <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
               <TapeReveal>Trust</TapeReveal>
               <h2 className="mt-3 font-display text-2xl font-extrabold uppercase tracking-tight sm:text-3xl lg:text-4xl">
@@ -109,14 +110,10 @@ export default function Home() {
             </div>
             <p className="max-w-xs text-sm leading-relaxed text-slate-500">Selected names from our client register, as supplied by Al Lulu Packaging.</p>
           </div>
-          <div className="flex flex-wrap gap-x-10 gap-y-5 lg:gap-x-14">
-            {CLIENTS.map((c, i) => (
-              <Reveal key={c} delay={i * 0.045} y={14}>
-                <span className="font-display text-lg font-bold tracking-wide text-charcoal/60 transition-colors hover:text-charcoal lg:text-2xl">{c}</span>
-              </Reveal>
-            ))}
-          </div>
-          <p className="mt-8 font-mono text-[10px] uppercase tracking-[0.16em] text-slate-400">
+        </div>
+        <ClientLogoMarquee />
+        <div className="mx-auto max-w-[1400px] px-5 py-4 sm:px-8 lg:px-12">
+          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-slate-400">
             Client names shown as supplied by Al Lulu Packaging. No partnership, certification or endorsement is implied.
           </p>
         </div>
@@ -161,31 +158,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ---------- ON-SCROLL FOLDING 3D CARDBOARD BOX ---------- */}
-      <FoldingBoxSection />
-
-      {/* ---------- MANIFESTO ---------- */}
-      <section className="grain bg-charcoal py-20 text-bone lg:py-28" data-testid="manifesto-section">
-        <div className="mx-auto max-w-[1400px] px-5 sm:px-8 lg:px-12">
-          <TapeReveal tone="tape">Why Al Lulu</TapeReveal>
-          <h2 className="mt-4 max-w-2xl font-display text-3xl font-extrabold uppercase leading-[1.05] tracking-tight sm:text-4xl lg:text-5xl">
-            The way we supply
-          </h2>
-          <div className="mt-14 grid gap-10 md:grid-cols-3 lg:gap-12">
-            {MANIFESTO.map((m, i) => (
-              <Reveal key={m.num} delay={i * 0.08}>
-                <div className="border-l-2 border-kraft pl-6">
-                  <span className="font-display text-5xl font-extrabold text-bone/15">{m.num}</span>
-                  <h3 className="mt-3 font-display text-xl font-bold tracking-tight sm:text-2xl">{m.title}</h3>
-                  <p className="mt-3 text-sm leading-relaxed text-bone/65">{m.text}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ---------- FEATURED PRODUCTS ---------- */}
+      {/* ---------- FEATURED PRODUCTS (moved up) ---------- */}
       <section className="bg-bone py-20 lg:py-28" data-testid="featured-products-section">
         <div className="mx-auto max-w-[1400px] px-5 sm:px-8 lg:px-12">
           <div className="mb-10 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -204,6 +177,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* ---------- WAY WE SUPPLY + BOX CLOSING ---------- */}
+      <WayWeSupplySection />
 
       {/* ---------- INDUSTRIES PREVIEW ---------- */}
       <section className="border-y border-line bg-paper py-20 lg:py-24" data-testid="industries-preview">
@@ -226,6 +202,43 @@ export default function Home() {
                 </div>
               </Reveal>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ---------- MAP STRIP ---------- */}
+      <section className="bg-bone border-b border-line" data-testid="home-map-strip">
+        <div className="mx-auto max-w-[1400px] px-5 py-12 sm:px-8 lg:px-12">
+          <div className="grid gap-8 lg:grid-cols-2 items-center">
+            <div>
+              <TapeReveal>Find us</TapeReveal>
+              <h2 className="mt-3 font-display text-2xl font-extrabold uppercase tracking-tight sm:text-3xl">Our location</h2>
+              <div className="mt-5 flex items-start gap-3">
+                <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-kraft" />
+                <div>
+                  <p className="font-semibold text-charcoal">{COMPANY.legalName}</p>
+                  <p className="mt-0.5 text-sm text-slate-600">{COMPANY.poBox}</p>
+                  <p className="text-sm text-slate-600">{COMPANY.address}</p>
+                </div>
+              </div>
+              <a
+                href="https://maps.google.com/?q=Industrial+Area+5,+Sharjah,+UAE"
+                target="_blank"
+                rel="noreferrer"
+                className="mt-6 inline-flex items-center gap-2 bg-charcoal px-5 py-3 font-mono text-[11px] uppercase tracking-[0.16em] text-bone transition-colors hover:bg-kraft"
+              >
+                <MapPin className="h-3.5 w-3.5" /> Open in Google Maps
+              </a>
+            </div>
+            <div className="overflow-hidden rounded-sm border border-line shadow-md">
+              <iframe
+                title="Al Lulu Packaging location"
+                src="https://www.google.com/maps?q=Industrial%20Area%205%2C%20Sharjah%2C%20United%20Arab%20Emirates&output=embed"
+                className="h-60 w-full lg:h-72"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
           </div>
         </div>
       </section>

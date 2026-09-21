@@ -18,10 +18,10 @@ const Logo = ({ light }) => (
     <img
       src={light ? "/logo-light.png" : "/logo.png"}
       alt="Al Lulu Packaging Logo"
-      className="h-10 w-10 object-contain shrink-0"
+      className="h-12 w-12 object-contain shrink-0"
     />
-    <span className={`font-display text-sm font-extrabold uppercase leading-tight tracking-wide ${light ? "text-bone" : "text-charcoal"}`}>
-      Al Lulu<span className="block text-[10px] font-bold tracking-[0.22em] opacity-70">Packaging</span>
+    <span className={`font-display text-base font-extrabold uppercase leading-tight tracking-wide ${light ? "text-bone" : "text-charcoal"}`}>
+      Al Lulu<span className="block text-[11px] font-bold tracking-[0.22em] opacity-70">Packaging</span>
     </span>
   </Link>
 );

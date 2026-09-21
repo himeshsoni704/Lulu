@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Package, Send, X, Sparkles } from "lucide-react";
-import { WA_GENERAL } from "../data/site";
+import { Package, Send, X, Sparkles, MessageCircle } from "lucide-react";
+import { COMPANY, WA_GENERAL, waLink } from "../data/site";
 import { streamGeminiChat } from "../lib/gemini";
 
-const GREETING = "Hi, I'm Rocky. I can help you find a packaging product, learn about Al Lulu Packaging, or guide you on getting a quotation.";
-const FALLBACK = "I'm not sure about that. Let me connect you with the Al Lulu team via WhatsApp or our Request a Quote form.";
+const GREETING = "Hi, I'm Rocky 👋 I can help you find the right packaging product, learn about Al Lulu Packaging, or guide you to get a quote.";
+const FALLBACK = "I'm not sure about that. Let me connect you with the Al Lulu team — tap below to send a WhatsApp message and they'll get back to you quickly.";
+
+// Keywords that trigger showing the WhatsApp CTA
+const WA_TRIGGER_PATTERNS = /price|cost|order|buy|purchase|delivery|ship|quote|minimum|moq|stock|availab|don't know|not sure|contact/i;
 
 const QUICK = [
   { label: "Find a Product", msg: "I'm looking for a packaging product. Can you help me find the right one?" },
@@ -20,6 +23,8 @@ export default function Rocky() {
   const [messages, setMessages] = useState([{ role: "assistant", content: GREETING }]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
+  const [lastUserMsg, setLastUserMsg] = useState("");
+  const [showWaHint, setShowWaHint] = useState(false);
   const sessionRef = useRef(`s-${Math.random().toString(36).slice(2, 12)}`);
   const listRef = useRef(null);
   const navigate = useNavigate();
@@ -32,20 +37,32 @@ export default function Rocky() {
 
   useEffect(() => {
     if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
-  }, [messages, streaming]);
+  }, [messages, streaming, showWaHint]);
+
+  const buildWaLink = (userMsg) => {
+    const summary = userMsg
+      ? `Hi, I was chatting with Rocky on your website. My query: "${userMsg}". Can you help?`
+      : `Hi, I'd like to know more about Al Lulu Packaging's products and services.`;
+    return waLink(summary);
+  };
 
   const send = async (text) => {
     const msg = (text ?? input).trim();
     if (!msg || streaming) return;
     setInput("");
+    setLastUserMsg(msg);
+    setShowWaHint(false);
     const nextMessages = [...messages, { role: "user", content: msg }];
     setMessages([...nextMessages, { role: "assistant", content: "" }]);
     setStreaming(true);
+
+    let finalResponse = "";
 
     try {
       await streamGeminiChat({
         messages: nextMessages,
         onDelta: (delta) => {
+          finalResponse += delta;
           setMessages((m) => {
             const copy = [...m];
             const last = copy[copy.length - 1];
@@ -80,6 +97,7 @@ export default function Rocky() {
                 const payload = JSON.parse(part.slice(6));
                 if (payload.delta) {
                   recovered = true;
+                  finalResponse += payload.delta;
                   setMessages((m) => {
                     const copy = [...m];
                     const last = copy[copy.length - 1];
@@ -96,6 +114,7 @@ export default function Rocky() {
       }
 
       if (!recovered) {
+        finalResponse = FALLBACK;
         setMessages((m) => {
           const copy = [...m];
           copy[copy.length - 1] = { role: "assistant", content: FALLBACK };
@@ -104,6 +123,10 @@ export default function Rocky() {
       }
     } finally {
       setStreaming(false);
+      // Show WhatsApp CTA if reply suggests uncertainty or user asked about ordering/pricing
+      if (WA_TRIGGER_PATTERNS.test(msg) || WA_TRIGGER_PATTERNS.test(finalResponse)) {
+        setShowWaHint(true);
+      }
     }
   };
 
@@ -122,13 +145,15 @@ export default function Rocky() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 14, scale: 0.98, transition: { duration: 0.22 } }}
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed bottom-[92px] right-4 sm:right-6 z-50 flex h-[min(68vh,540px)] w-[min(92vw,380px)] flex-col overflow-hidden rounded-lg border border-line bg-white shadow-2xl"
+            className="fixed bottom-[92px] right-4 sm:right-6 z-50 flex h-[min(72vh,560px)] w-[min(92vw,390px)] flex-col overflow-hidden rounded-xl border border-line bg-white shadow-2xl"
             aria-label="Rocky AI packaging assistant"
             data-testid="rocky-ai-chat-panel"
           >
             <header className="grain flex items-center justify-between bg-charcoal px-4 py-3.5 text-bone">
               <div className="flex items-center gap-3">
-                <span className="grid h-9 w-9 place-items-center rounded-full bg-kraft"><Package className="h-4 w-4" /></span>
+                <span className="grid h-9 w-9 place-items-center rounded-full bg-kraft">
+                  <Package className="h-4 w-4" />
+                </span>
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="font-display text-sm font-extrabold uppercase tracking-wide leading-none">Rocky</p>
@@ -148,22 +173,45 @@ export default function Rocky() {
             <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto bg-paper/60 p-4" data-testid="rocky-ai-chat-messages">
               {messages.map((m, i) => (
                 <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[85%] whitespace-pre-wrap rounded-md px-3.5 py-2.5 text-sm leading-relaxed ${
+                  <div className={`max-w-[85%] whitespace-pre-wrap rounded-lg px-3.5 py-2.5 text-sm leading-relaxed ${
                     m.role === "user" ? "bg-kraft text-bone" : "border border-line bg-white text-charcoal"
                   }`}>
                     {m.content || <span className="inline-flex gap-1"><span className="rocky-dot h-1.5 w-1.5 rounded-full bg-charcoal/50" /><span className="rocky-dot h-1.5 w-1.5 rounded-full bg-charcoal/50" /><span className="rocky-dot h-1.5 w-1.5 rounded-full bg-charcoal/50" /></span>}
                   </div>
                 </div>
               ))}
+
+              {/* Quick actions on first message */}
               {messages.length <= 1 && (
                 <div className="flex flex-wrap gap-2 pt-2" data-testid="rocky-quick-actions">
                   {QUICK.map((q) => (
-                    <button key={q.label} onClick={() => quickAction(q)} data-testid={`rocky-quick-action-${q.label.toLowerCase().replace(/[^a-z]+/g, "-")}`}
-                      className="border border-charcoal/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] transition-colors hover:bg-charcoal hover:text-bone">
+                    <button key={q.label} onClick={() => quickAction(q)}
+                      data-testid={`rocky-quick-action-${q.label.toLowerCase().replace(/[^a-z]+/g, "-")}`}
+                      className="border border-charcoal/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] transition-colors hover:bg-charcoal hover:text-bone rounded-sm">
                       {q.label}
                     </button>
                   ))}
                 </div>
+              )}
+
+              {/* WhatsApp handoff CTA — shown when Rocky is uncertain or user asks about orders/pricing */}
+              {showWaHint && !streaming && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex justify-start"
+                >
+                  <a
+                    href={buildWaLink(lastUserMsg)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-lg bg-[#1FA855] px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-transform hover:scale-[1.02]"
+                    data-testid="rocky-whatsapp-cta"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    Send query to WhatsApp
+                  </a>
+                </motion.div>
               )}
             </div>
 
@@ -181,7 +229,7 @@ export default function Rocky() {
                 className="field flex-1"
               />
               <button type="submit" disabled={streaming || !input.trim()} aria-label="Send message" data-testid="rocky-ai-chat-send"
-                className="grid h-10 w-10 shrink-0 place-items-center bg-charcoal text-bone transition-opacity disabled:opacity-40">
+                className="grid h-10 w-10 shrink-0 place-items-center bg-charcoal text-bone transition-opacity disabled:opacity-40 rounded-sm">
                 <Send className="h-4 w-4" />
               </button>
             </form>
