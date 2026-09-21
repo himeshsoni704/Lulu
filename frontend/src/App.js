@@ -14,6 +14,7 @@ import WhatWeDo from "./pages/WhatWeDo";
 import Industries from "./pages/Industries";
 import Contact from "./pages/Contact";
 import QuotePage from "./pages/QuotePage";
+import Admin from "./pages/Admin";
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -84,6 +85,7 @@ function App() {
             <Route path="/industries" element={<Industries />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/request-quote" element={<QuotePage />} />
+            <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<Home />} />
           </Routes>
         </main>

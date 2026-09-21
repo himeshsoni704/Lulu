@@ -21,8 +21,14 @@ Build a premium, modern, highly polished B2B website for Al Lulu Packaging (AL L
 - Design system: bone/paper/charcoal/kraft (#A05A2C)/tape-yellow (#D9A036); Syne display + Plus Jakarta Sans + JetBrains Mono; grain, dieline frames, tape-strip signature; Lenis smooth scroll; framer-motion reveals; reduced-motion support.
 
 ## Implemented (2026-09-19)
-- All pages, all components, Rocky streaming chat, quotation + contact persistence to MongoDB, file upload, client trust band, industries derived from real clients, animations (masked hero reveal, tape reveals, marquee, parallax hero, quote seal animation ~2.4s).
+- All pages, all components, Rocky streaming chat, quotation + contact persistence to MongoDB, file upload to Emergent object storage, client trust band, industries derived from real clients, animations (masked hero reveal, tape reveals, marquee, parallax hero, quote seal animation ~2.4s).
 - Verified: curl backend endpoints (products 16, quote, contact, rocky SSE), desktop + mobile screenshots, e2e quote submit through UI.
+
+## Implemented (2026-09-21) — Quote Inbox
+- Admin area at /admin (not publicly linked): passcode login (ADMIN_PASSCODE in backend/.env) issuing a 12h JWT (JWT_SECRET); brute-force lockout 5 fails/15 min.
+- GET /api/admin/quotations, /api/admin/contacts (Bearer-protected), CSV export /api/admin/export, attachment download via /api/files/{path} from object storage.
+- Quote form attachments now upload to Emergent object storage (path allulu-packaging/uploads/quotes/...), original filename + storage path stored in Mongo.
+- Verified: 401 on wrong passcode/unauthenticated, token flow, lists with real submissions, CSV headers, upload→download round-trip, admin UI e2e via screenshots.
 
 ## Content Integrity Notes
 - No MOQs, prices, certifications, working hours, or testimonials supplied → none shown.

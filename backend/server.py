@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, APIRouter, UploadFile, File, Form, HTTPException, Request, Depends
 from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -11,8 +11,13 @@ import logging
 import uuid
 import json
 import re
+import csv
+import io
+import time
+import hmac
+import jwt
 from pathlib import Path
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from data import COMPANY, CATEGORIES, PRODUCTS, PRODUCT_INDEX
 
@@ -23,8 +28,35 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-UPLOAD_DIR = ROOT_DIR / 'uploads'
-UPLOAD_DIR.mkdir(exist_ok=True)
+# ---------- Emergent object storage ----------
+import requests
+from fastapi import Response
+
+STORAGE_BASE = (os.environ.get("INTEGRATION_PROXY_URL") or "").strip() or "https://integrations.emergentagent.com"
+STORAGE_URL = STORAGE_BASE.rstrip("/") + "/objstore/api/v1/storage"
+STORAGE_KEY = None
+APP_NAME = "allulu-packaging"
+
+
+def init_storage(force=False):
+    global STORAGE_KEY
+    if STORAGE_KEY and not force:
+        return STORAGE_KEY
+    resp = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": os.environ.get("EMERGENT_LLM_KEY")}, timeout=30)
+    resp.raise_for_status()
+    STORAGE_KEY = resp.json()["storage_key"]
+    return STORAGE_KEY
+
+
+def put_object(path, data, content_type):
+    key = init_storage()
+    resp = requests.put(
+        f"{STORAGE_URL}/objects/{path}",
+        headers={"X-Storage-Key": key, "Content-Type": content_type},
+        data=data, timeout=120,
+    )
+    resp.raise_for_status()
+    return resp.json()
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
@@ -115,12 +147,15 @@ async def create_quote(
     }
 
     if file and file.filename:
-        safe = re.sub(r"[^A-Za-z0-9._-]", "_", file.filename)[:80]
-        stored = f"{uuid.uuid4().hex[:12]}_{safe}"
-        path = UPLOAD_DIR / stored
-        with open(path, "wb") as f:
-            f.write(await file.read())
-        doc["file_name"] = safe
+        data = await file.read()
+        ext = file.filename.split(".")[-1].lower() if "." in file.filename else "bin"
+        path = f"{APP_NAME}/uploads/quotes/{uuid.uuid4().hex}.{ext}"
+        try:
+            result = put_object(path, data, file.content_type or "application/octet-stream")
+            doc["file_name"] = file.filename[:120]
+            doc["file_path"] = result.get("path", path)
+        except Exception as e:
+            logger.error(f"File upload failed: {e}")
 
     result = await db.quotes.insert_one(doc)
     return {"ok": True, "id": str(result.inserted_id)}
@@ -222,6 +257,99 @@ async def rocky_chat(body: RockyChat):
         event_stream(),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+# ---------- admin quote inbox ----------
+ADMIN_ATTEMPTS = {}
+
+
+class AdminLogin(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    passcode: str
+
+
+def admin_auth(request: Request):
+    token = request.headers.get("Authorization", "")
+    if token.startswith("Bearer "):
+        token = token[7:]
+    else:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        payload = jwt.decode(token, os.environ["JWT_SECRET"], algorithms=["HS256"])
+        if payload.get("type") != "access" or payload.get("sub") != "admin":
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    return True
+
+
+@api_router.post("/admin/login")
+async def admin_login(request: Request, body: AdminLogin):
+    ip = request.client.host if request.client else "unknown"
+    now = time.time()
+    fails = [t for t in ADMIN_ATTEMPTS.get(ip, []) if now - t < 900]
+    if len(fails) >= 5:
+        raise HTTPException(status_code=429, detail="Too many attempts. Try again in 15 minutes.")
+    expected = os.environ.get("ADMIN_PASSCODE", "")
+    if not expected or not hmac.compare_digest(body.passcode, expected):
+        fails.append(now)
+        ADMIN_ATTEMPTS[ip] = fails
+        raise HTTPException(status_code=401, detail="Incorrect passcode")
+    ADMIN_ATTEMPTS.pop(ip, None)
+    token = jwt.encode(
+        {"sub": "admin", "type": "access", "exp": datetime.now(timezone.utc) + timedelta(hours=12)},
+        os.environ["JWT_SECRET"], algorithm="HS256",
+    )
+    return {"token": token}
+
+
+@api_router.get("/admin/quotations")
+async def admin_quotations(_: bool = Depends(admin_auth)):
+    docs = await db.quotes.find().sort("created_at", -1).to_list(500)
+    return {"quotations": [from_mongo(d) for d in docs]}
+
+
+@api_router.get("/admin/contacts")
+async def admin_contacts(_: bool = Depends(admin_auth)):
+    docs = await db.contacts.find().sort("created_at", -1).to_list(500)
+    return {"contacts": [from_mongo(d) for d in docs]}
+
+
+@api_router.get("/admin/export")
+async def admin_export(type: str = "quotation", _: bool = Depends(admin_auth)):
+    if type not in ("quotation", "contact"):
+        raise HTTPException(status_code=422, detail="type must be quotation or contact")
+    col = db.quotes if type == "quotation" else db.contacts
+    docs = await col.find().sort("created_at", -1).to_list(1000)
+    buf = io.StringIO()
+    if docs:
+        writer = csv.DictWriter(buf, fieldnames=list(docs[0].keys()))
+        writer.writeheader()
+        for d in docs:
+            writer.writerow({k: str(v if v is not None else "") for k, v in d.items()})
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=al-lulu-{type}s.csv"},
+    )
+
+
+@api_router.get("/files/{path:path}")
+async def admin_download_file(path: str, _: bool = Depends(admin_auth)):
+    try:
+        key = init_storage()
+        resp = requests.get(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key}, timeout=60)
+        resp.raise_for_status()
+    except Exception:
+        raise HTTPException(status_code=404, detail="File not available")
+    filename = path.split("/")[-1]
+    return Response(
+        content=resp.content,
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
 
 
