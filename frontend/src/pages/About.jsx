@@ -16,14 +16,14 @@ export default function About() {
       <section className="grain bg-charcoal pt-32 pb-16 text-bone lg:pb-24">
         <div className="mx-auto max-w-[1400px] px-5 sm:px-8 lg:px-12">
           <div className="flex items-center gap-3 mb-6">
-            <span className="h-px w-10 bg-tape" />
+            <img src="/logo-light.png" alt="Al Lulu Packaging" className="h-8 w-8 object-contain" />
             <span className="font-mono text-[11px] uppercase tracking-[0.3em] text-tape">About Al Lulu Packaging — Est. {COMPANY.established}</span>
           </div>
           <h1 className="max-w-4xl font-display text-4xl font-extrabold uppercase leading-[1.02] tracking-tight sm:text-5xl lg:text-6xl">
             Packaging experience built around business needs.
           </h1>
           <p className="mt-6 max-w-xl text-bone/70 text-base sm:text-lg">
-            A UAE packaging materials company operating from Industrial Area #5, Sharjah, since {COMPANY.established}.
+            A UAE packaging materials company operating from {COMPANY.address}, since {COMPANY.established}.
           </p>
         </div>
       </section>
@@ -33,6 +33,14 @@ export default function About() {
           <div className="lg:col-span-5">
             <TapeReveal>The company</TapeReveal>
             <h2 className="mt-4 font-display text-3xl font-extrabold uppercase tracking-tight sm:text-4xl">Complete packaging, from Sharjah industry.</h2>
+            <div className="mt-6 flex items-center gap-4 border border-line bg-paper/60 p-4 rounded-sm">
+              <img src="/logo.png" alt="Al Lulu Packaging official emblem" className="h-20 w-20 object-contain shrink-0" />
+              <div>
+                <p className="font-display text-xs font-bold uppercase tracking-wide text-charcoal">{COMPANY.legalName}</p>
+                <p className="font-mono text-[11px] text-slate-600 mt-1">{COMPANY.fullAddress}</p>
+                <p className="font-mono text-[11px] text-slate-500 mt-0.5">Tel: {COMPANY.phoneDisplay} | Fax: {COMPANY.faxDisplay}</p>
+              </div>
+            </div>
           </div>
           <div className="lg:col-span-7 space-y-6 text-base leading-relaxed text-slate-700">
             <p>

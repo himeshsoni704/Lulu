@@ -27,8 +27,8 @@ export default function ProductDetail() {
       <section className="bg-bone py-12 lg:py-16">
         <div className="mx-auto grid max-w-[1400px] gap-12 px-5 sm:px-8 lg:grid-cols-2 lg:px-12">
           <Reveal>
-            <div className="dieline dieline-dark relative overflow-hidden rounded-sm border border-line bg-paper">
-              <img src={product.image} alt={product.name} className="h-[360px] w-full object-cover sm:h-[480px]" />
+            <div className="dieline dieline-dark relative flex items-center justify-center overflow-hidden rounded-sm border border-line bg-paper p-8">
+              <img src={product.image} alt={product.name} className="h-[320px] w-full object-contain sm:h-[440px]" />
               <span className="tape-strip -right-6 top-8 h-6 w-44 rotate-[24deg] opacity-90" aria-hidden="true" />
             </div>
           </Reveal>

@@ -55,21 +55,25 @@ export default function Contact() {
                   <div>
                     <p className="field-label">Address</p>
                     <p className="text-sm font-semibold sm:text-base">{COMPANY.legalName}</p>
+                    <p className="text-sm text-slate-700 font-medium mt-0.5">{COMPANY.poBox}</p>
                     <p className="text-sm text-slate-600">{COMPANY.address}</p>
                   </div>
                 </li>
                 <li className="flex gap-4">
                   <span className="grid h-11 w-11 shrink-0 place-items-center rounded-sm bg-charcoal text-bone"><Phone className="h-4 w-4" /></span>
                   <div>
-                    <p className="field-label">Phone</p>
-                    <a href={`tel:${COMPANY.phoneIntl.replace(/\s/g, "")}`} data-testid="contact-phone-link" className="text-sm font-semibold hover:text-kraft sm:text-base">{COMPANY.phoneDisplay}</a>
+                    <p className="field-label">Phone &amp; Fax</p>
+                    <div className="flex flex-col">
+                      <a href={`tel:${COMPANY.phoneIntl.replace(/\s/g, "")}`} data-testid="contact-phone-link" className="text-sm font-semibold hover:text-kraft sm:text-base">Tel: {COMPANY.phoneDisplay}</a>
+                      <span className="text-sm text-slate-600">Fax: {COMPANY.faxDisplay}</span>
+                    </div>
                   </div>
                 </li>
                 <li className="flex gap-4">
                   <span className="grid h-11 w-11 shrink-0 place-items-center rounded-sm bg-[#1FA855] text-white"><MessageCircle className="h-4 w-4" /></span>
                   <div>
                     <p className="field-label">WhatsApp</p>
-                    <a href={WA_GENERAL} target="_blank" rel="noreferrer" data-testid="contact-whatsapp-link" className="text-sm font-semibold hover:underline sm:text-base">Chat with us on WhatsApp</a>
+                    <a href={WA_GENERAL} target="_blank" rel="noreferrer" data-testid="contact-whatsapp-link" className="text-sm font-semibold hover:underline sm:text-base">Chat with us on WhatsApp ({COMPANY.phoneDisplay})</a>
                   </div>
                 </li>
                 <li className="flex gap-4">

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Package, Send, X } from "lucide-react";
+import { Package, Send, X, Sparkles } from "lucide-react";
 import { WA_GENERAL } from "../data/site";
+import { streamGeminiChat } from "../lib/gemini";
 
-const GREETING = "Hi, I'm Rocky. I can help you find a product, learn about Al Lulu Packaging, or request a quotation.";
-const FALLBACK = "I'm not sure about that. Let me connect you with the Al Lulu team.";
+const GREETING = "Hi, I'm Rocky. I can help you find a packaging product, learn about Al Lulu Packaging, or guide you on getting a quotation.";
+const FALLBACK = "I'm not sure about that. Let me connect you with the Al Lulu team via WhatsApp or our Request a Quote form.";
 
 const QUICK = [
   { label: "Find a Product", msg: "I'm looking for a packaging product. Can you help me find the right one?" },
@@ -37,43 +38,70 @@ export default function Rocky() {
     const msg = (text ?? input).trim();
     if (!msg || streaming) return;
     setInput("");
-    setMessages((m) => [...m, { role: "user", content: msg }, { role: "assistant", content: "" }]);
+    const nextMessages = [...messages, { role: "user", content: msg }];
+    setMessages([...nextMessages, { role: "assistant", content: "" }]);
     setStreaming(true);
+
     try {
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/rocky/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: sessionRef.current, message: msg }),
+      await streamGeminiChat({
+        messages: nextMessages,
+        onDelta: (delta) => {
+          setMessages((m) => {
+            const copy = [...m];
+            const last = copy[copy.length - 1];
+            copy[copy.length - 1] = { ...last, content: (last.content || "") + delta };
+            return copy;
+          });
+        },
       });
-      if (!res.ok || !res.body) throw new Error("bad response");
-      const reader = res.body.getReader();
-      const dec = new TextDecoder();
-      let buf = "";
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += dec.decode(value, { stream: true });
-        const parts = buf.split("\n\n");
-        buf = parts.pop();
-        for (const part of parts) {
-          if (!part.startsWith("data: ")) continue;
-          const payload = JSON.parse(part.slice(6));
-          if (payload.delta) {
-            setMessages((m) => {
-              const copy = [...m];
-              const last = copy[copy.length - 1];
-              copy[copy.length - 1] = { ...last, content: last.content + payload.delta };
-              return copy;
-            });
+    } catch (err) {
+      console.warn("Direct Gemini call error, trying backend fallback:", err);
+      let recovered = false;
+
+      if (process.env.REACT_APP_BACKEND_URL) {
+        try {
+          const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/rocky/chat`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ session_id: sessionRef.current, message: msg }),
+          });
+          if (res.ok && res.body) {
+            const reader = res.body.getReader();
+            const dec = new TextDecoder();
+            let buf = "";
+            for (;;) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              buf += dec.decode(value, { stream: true });
+              const parts = buf.split("\n\n");
+              buf = parts.pop();
+              for (const part of parts) {
+                if (!part.startsWith("data: ")) continue;
+                const payload = JSON.parse(part.slice(6));
+                if (payload.delta) {
+                  recovered = true;
+                  setMessages((m) => {
+                    const copy = [...m];
+                    const last = copy[copy.length - 1];
+                    copy[copy.length - 1] = { ...last, content: (last.content || "") + payload.delta };
+                    return copy;
+                  });
+                }
+              }
+            }
           }
+        } catch (backendErr) {
+          console.error("Backend error:", backendErr);
         }
       }
-    } catch (e) {
-      setMessages((m) => {
-        const copy = [...m];
-        copy[copy.length - 1] = { role: "assistant", content: FALLBACK };
-        return copy;
-      });
+
+      if (!recovered) {
+        setMessages((m) => {
+          const copy = [...m];
+          copy[copy.length - 1] = { role: "assistant", content: FALLBACK };
+          return copy;
+        });
+      }
     } finally {
       setStreaming(false);
     }
@@ -102,7 +130,12 @@ export default function Rocky() {
               <div className="flex items-center gap-3">
                 <span className="grid h-9 w-9 place-items-center rounded-full bg-kraft"><Package className="h-4 w-4" /></span>
                 <div>
-                  <p className="font-display text-sm font-extrabold uppercase tracking-wide leading-none">Rocky</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-display text-sm font-extrabold uppercase tracking-wide leading-none">Rocky</p>
+                    <span className="inline-flex items-center gap-1 rounded bg-kraft/20 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-kraft">
+                      <Sparkles className="h-2.5 w-2.5" /> Gemini
+                    </span>
+                  </div>
                   <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-bone/60 mt-1">Al Lulu Packaging Assistant</p>
                 </div>
               </div>

@@ -55,10 +55,15 @@ class ErrorBoundary extends React.Component {
   }
   render() {
     if (this.state.err) {
+      console.error("ErrorBoundary error:", this.state.err);
       return (
         <div className="grid min-h-screen place-items-center bg-bone p-8 text-center">
-          <div>
-            <p className="font-display text-2xl font-bold uppercase">Something went wrong</p>
+          <div className="max-w-xl">
+            <p className="font-display text-2xl font-bold uppercase text-charcoal">Something went wrong</p>
+            <div className="mt-4 overflow-auto rounded border border-red-200 bg-red-50 p-4 text-left font-mono text-xs text-red-700">
+              <p className="font-bold">{this.state.err.toString()}</p>
+              {this.state.err.stack && <pre className="mt-2 whitespace-pre-wrap">{this.state.err.stack}</pre>}
+            </div>
             <button onClick={() => window.location.reload()} className="mt-4 bg-charcoal px-6 py-3 font-mono text-[11px] uppercase tracking-widest text-bone">Reload</button>
           </div>
         </div>

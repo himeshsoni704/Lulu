@@ -208,28 +208,56 @@ STYLE:
 
 @api_router.post("/rocky/chat")
 async def rocky_chat(body: RockyChat):
-    api_key = os.environ.get('EMERGENT_LLM_KEY')
-    if not api_key:
-        raise HTTPException(status_code=500, detail="LLM key not configured")
+    gemini_key = os.environ.get("GEMINI_API_KEY")
+    emergent_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not gemini_key and not emergent_key:
+        raise HTTPException(status_code=500, detail="Gemini / LLM key not configured")
 
     prompt = body.message.strip()[:2000] or "Hello"
-    session_id = f"rocky-{body.session_id[:64]}"
-
-    chat = LlmChat(
-        api_key=api_key,
-        session_id=session_id,
-        system_message=build_rocky_system_message(),
-    ).with_model("gemini", "gemini-3-flash-preview")
+    system_instruction = build_rocky_system_message()
 
     async def event_stream():
         full = ""
         try:
-            async for ev in chat.stream_message(UserMessage(text=prompt)):
-                if isinstance(ev, TextDelta):
-                    full += ev.content
-                    yield f"data: {json.dumps({'delta': ev.content})}\n\n"
-                elif isinstance(ev, StreamDone):
-                    break
+            if gemini_key:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key={gemini_key}"
+                payload = {
+                    "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+                    "systemInstruction": {"parts": [{"text": system_instruction}]},
+                    "generationConfig": {"temperature": 0.4, "maxOutputTokens": 800},
+                }
+                resp = requests.post(url, json=payload, stream=True, timeout=60)
+                resp.raise_for_status()
+                for line in resp.iter_lines():
+                    if not line:
+                        continue
+                    line_str = line.decode("utf-8") if isinstance(line, bytes) else line
+                    if line_str.startswith("data: "):
+                        data_json = line_str[6:].strip()
+                        if not data_json:
+                            continue
+                        try:
+                            parsed = json.loads(data_json)
+                            delta = parsed.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+                            if delta:
+                                full += delta
+                                yield f"data: {json.dumps({'delta': delta})}\n\n"
+                        except Exception:
+                            pass
+            else:
+                session_id = f"rocky-{body.session_id[:64]}"
+                chat = LlmChat(
+                    api_key=emergent_key,
+                    session_id=session_id,
+                    system_message=system_instruction,
+                ).with_model("gemini", "gemini-3-flash-preview")
+                async for ev in chat.stream_message(UserMessage(text=prompt)):
+                    if isinstance(ev, TextDelta):
+                        full += ev.content
+                        yield f"data: {json.dumps({'delta': ev.content})}\n\n"
+                    elif isinstance(ev, StreamDone):
+                        break
+
             yield f"data: {json.dumps({'done': True})}\n\n"
         except Exception as e:
             logging.getLogger(__name__).error(f"Rocky error: {e}")

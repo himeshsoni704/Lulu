@@ -8,9 +8,17 @@ export default function Footer() {
   return (
     <footer className="grain relative bg-charcoal text-bone" data-testid="site-footer">
       <div className="mx-auto max-w-[1400px] px-5 pt-16 sm:px-8 lg:px-12 lg:pt-24 pb-10">
-        <p className="font-display text-[clamp(2rem,6vw,4.5rem)] font-extrabold uppercase leading-none tracking-tight text-bone/95">
-          Al Lulu<br />Packaging
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+          <img src="/logo-light.png" alt="Al Lulu Packaging Logo" className="h-20 w-20 object-contain shrink-0" />
+          <div>
+            <p className="font-display text-[clamp(2rem,5vw,4rem)] font-extrabold uppercase leading-none tracking-tight text-bone/95">
+              Al Lulu<br className="hidden sm:inline" /> Packaging
+            </p>
+            <p className="font-mono text-xs uppercase tracking-[0.2em] text-tape mt-2">
+              {COMPANY.legalName}
+            </p>
+          </div>
+        </div>
 
         <div className="mt-12 grid gap-10 border-t border-bone/10 pt-10 md:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-4">
@@ -49,9 +57,22 @@ export default function Footer() {
           <div className="space-y-4">
             <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-tape">Contact</p>
             <ul className="space-y-3 text-sm text-bone/70">
-              <li className="flex gap-2.5"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-bone/50" /><span>{COMPANY.address}</span></li>
-              <li className="flex gap-2.5"><Phone className="mt-0.5 h-4 w-4 shrink-0 text-bone/50" /><a href={`tel:${COMPANY.phoneIntl.replace(/\s/g, "")}`} className="hover:text-bone">{COMPANY.phoneDisplay}</a></li>
-              <li className="flex gap-2.5"><Mail className="mt-0.5 h-4 w-4 shrink-0 text-bone/50" />
+              <li className="flex gap-2.5">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-bone/50" />
+                <span className="flex flex-col">
+                  <span>{COMPANY.poBox}</span>
+                  <span>{COMPANY.address}</span>
+                </span>
+              </li>
+              <li className="flex gap-2.5">
+                <Phone className="mt-0.5 h-4 w-4 shrink-0 text-bone/50" />
+                <span className="flex flex-col">
+                  <a href={`tel:${COMPANY.phoneIntl.replace(/\s/g, "")}`} className="hover:text-bone">Tel: {COMPANY.phoneDisplay}</a>
+                  <span className="text-bone/60 text-xs">Fax: {COMPANY.faxDisplay}</span>
+                </span>
+              </li>
+              <li className="flex gap-2.5">
+                <Mail className="mt-0.5 h-4 w-4 shrink-0 text-bone/50" />
                 <span className="flex flex-col">
                   <a href={`mailto:${COMPANY.emailPrimary}`} className="hover:text-bone break-all">{COMPANY.emailPrimary}</a>
                   <a href={`mailto:${COMPANY.emailSecondary}`} className="hover:text-bone break-all">{COMPANY.emailSecondary}</a>

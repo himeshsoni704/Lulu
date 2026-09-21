@@ -11,6 +11,7 @@ import TapeReveal from "../components/TapeReveal";
 import Marquee from "../components/Marquee";
 import ProductCard from "../components/ProductCard";
 import CTABand from "../components/CTABand";
+import FoldingBoxSection from "../components/FoldingBoxSection";
 
 const ease = [0.22, 1, 0.36, 1];
 const FEATURED = ["corrugated-boxes", "bopp-brown-tapes", "stretch-film-handgrade", "bubble-rolls", "pizza-boxes", "edge-protector"];
@@ -40,7 +41,7 @@ export default function Home() {
           <div className="min-w-0 lg:col-span-7">
             <Reveal y={14}>
               <div className="mb-7 flex items-center gap-3">
-                <span className="h-px w-10 bg-tape" />
+                <img src="/logo-light.png" alt="Al Lulu Packaging" className="h-8 w-8 object-contain" />
                 <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-tape">
                   {COMPANY.name} — Sharjah, UAE — Est. {COMPANY.established}
                 </span>
@@ -159,6 +160,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* ---------- ON-SCROLL FOLDING 3D CARDBOARD BOX ---------- */}
+      <FoldingBoxSection />
 
       {/* ---------- MANIFESTO ---------- */}
       <section className="grain bg-charcoal py-20 text-bone lg:py-28" data-testid="manifesto-section">

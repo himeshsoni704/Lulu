@@ -15,9 +15,11 @@ const LINKS = [
 
 const Logo = ({ light }) => (
   <Link to="/" className="flex items-center gap-3" data-testid="nav-logo" aria-label="Al Lulu Packaging home">
-    <span className="grid h-9 w-9 place-items-center rounded-full bg-kraft font-display text-[11px] font-extrabold tracking-wider text-bone">
-      AL
-    </span>
+    <img
+      src={light ? "/logo-light.png" : "/logo.png"}
+      alt="Al Lulu Packaging Logo"
+      className="h-10 w-10 object-contain shrink-0"
+    />
     <span className={`font-display text-sm font-extrabold uppercase leading-tight tracking-wide ${light ? "text-bone" : "text-charcoal"}`}>
       Al Lulu<span className="block text-[10px] font-bold tracking-[0.22em] opacity-70">Packaging</span>
     </span>

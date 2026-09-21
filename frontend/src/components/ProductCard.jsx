@@ -10,12 +10,12 @@ export default function ProductCard({ p }) {
       className="group flex flex-col overflow-hidden rounded-sm border border-line bg-white"
       data-testid={`product-card-${p.id}`}
     >
-      <Link to={`/products/${p.id}`} className="relative block aspect-[4/3] overflow-hidden bg-paper" aria-label={`View ${p.name}`}>
+      <Link to={`/products/${p.id}`} className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-paper p-5" aria-label={`View ${p.name}`}>
         <img
           src={p.image}
           alt={p.name}
           loading="lazy"
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.045]"
+          className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-[1.08]"
         />
         <span className="absolute left-3 top-3 bg-charcoal/85 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.2em] text-bone">
           {p.category}
