@@ -3,12 +3,11 @@
  * Faithful port of the Threejs-folding-cardboard-box-tutorial by ksenia-k.
  * Adapted for React + Three.js v0.186 (mergeGeometries API).
  *
- * Features:
- *  - Faithful corrugated flute + folding geometry with 3-ply sandwich
- *  - Bold, prominent AL LULU PACKAGING branding on both sides with high contrast
- *  - Top adhesive security tape that seals the box when closed (progress > 0.85)
- *  - Smooth 60fps lerping synchronized with external scroll progress
- *  - Safe fallback for WebGL-restricted environments
+ * Key changes vs tutorial:
+ *  - mergeBufferGeometries → mergeGeometries (v0.160+)
+ *  - Scroll / GSAP timeline is driven externally via `progress` prop
+ *  - Full WebGL safety: pre-check + try-catch + context-lost handler
+ *  - Isolated SVG fallback (never throws to parent ErrorBoundary)
  */
 
 import React, { useEffect, useRef, useState } from "react";
@@ -30,11 +29,13 @@ function isWebGLAvailable() {
   }
 }
 
-// ─── 2-D SVG fallback (shown only when WebGL cannot start) ─────────────────
+// ─── 2-D SVG fallback (shown only when WebGL truly cannot start) ───────────
 function BoxSVGFallback({ progress, className }) {
   const stage = progress < 0.25 ? 0 : progress < 0.55 ? 1 : progress < 0.88 ? 2 : 3;
   const titles = ["Flat Die-Cut Blank", "Walls Rising 90°", "Base Flaps Interlocked", "Sealed & Ready"];
-  const wallH = Math.min(1, progress * 3) * 50;
+
+  // Animate a simple isometric box based on progress
+  const wallH = Math.min(1, progress * 3) * 50; // 0→50
   const flapBot = Math.min(1, Math.max(0, (progress - 0.35) / 0.25)) * 50;
   const flapTop = Math.min(1, Math.max(0, (progress - 0.6) / 0.35)) * 50;
 
@@ -43,7 +44,7 @@ function BoxSVGFallback({ progress, className }) {
       className={`flex h-full w-full flex-col items-center justify-center gap-4 select-none ${className}`}
       data-testid="folding-box-fallback"
     >
-      <div className="w-full max-w-md rounded-2xl border border-bone/15 bg-charcoal/90 p-6 shadow-2xl backdrop-blur-md">
+      <div className="w-full max-w-md rounded-2xl border border-bone/15 bg-charcoal/85 p-6 shadow-2xl backdrop-blur-md">
         <div className="mb-4 flex items-center justify-between border-b border-bone/10 pb-3">
           <span className="font-mono text-[10px] uppercase tracking-widest text-tape">
             Schematic · Stage {stage + 1} / 4
@@ -53,28 +54,94 @@ function BoxSVGFallback({ progress, className }) {
 
         <div className="flex justify-center py-4">
           <svg viewBox="0 0 240 180" className="h-44 w-72" fill="none">
+            {/* Bottom base */}
             <polygon points="60,140 120,160 180,140 120,120" fill="#c39d6e30" stroke="#c39d6e" strokeWidth="1.5" />
-            <polygon points={`60,${140 - wallH} 60,140 120,160 120,${160 - wallH}`} fill="#c39d6e40" stroke="#c39d6e" strokeWidth="1.5" />
-            <polygon points={`120,${160 - wallH} 120,160 180,140 180,${140 - wallH}`} fill="#c39d6e55" stroke="#c39d6e" strokeWidth="1.5" />
-            <polygon points={`60,${140 - wallH} 120,${120 - wallH} 180,${140 - wallH} 120,${160 - wallH}`} fill="#c39d6e20" stroke="#c39d6e" strokeWidth="1.5" />
+
+            {/* Left face (animates height) */}
+            <polygon
+              points={`60,${140 - wallH} 60,140 120,160 120,${160 - wallH}`}
+              fill="#c39d6e40"
+              stroke="#c39d6e"
+              strokeWidth="1.5"
+            />
+
+            {/* Right face */}
+            <polygon
+              points={`120,${160 - wallH} 120,160 180,140 180,${140 - wallH}`}
+              fill="#c39d6e55"
+              stroke="#c39d6e"
+              strokeWidth="1.5"
+            />
+
+            {/* Back face */}
+            <polygon
+              points={`60,${140 - wallH} 120,${120 - wallH} 180,${140 - wallH} 120,${160 - wallH}`}
+              fill="#c39d6e20"
+              stroke="#c39d6e"
+              strokeWidth="1.5"
+            />
+
+            {/* Bottom flaps */}
             {flapBot > 0 && (
               <>
-                <polygon points={`75,${160 - flapBot} 75,160 110,160 110,${160 - flapBot}`} fill="#b8936a60" stroke="#b8936a" strokeWidth="1" strokeDasharray="3 2" />
-                <polygon points={`130,${160 - flapBot} 130,160 165,160 165,${160 - flapBot}`} fill="#b8936a60" stroke="#b8936a" strokeWidth="1" strokeDasharray="3 2" />
+                <polygon
+                  points={`75,${160 - flapBot} 75,160 110,160 110,${160 - flapBot}`}
+                  fill="#b8936a60"
+                  stroke="#b8936a"
+                  strokeWidth="1"
+                  strokeDasharray="3 2"
+                />
+                <polygon
+                  points={`130,${160 - flapBot} 130,160 165,160 165,${160 - flapBot}`}
+                  fill="#b8936a60"
+                  stroke="#b8936a"
+                  strokeWidth="1"
+                  strokeDasharray="3 2"
+                />
               </>
             )}
+
+            {/* Top flaps */}
             {flapTop > 0 && (
               <>
-                <polygon points={`75,${160 - wallH} 75,${160 - wallH - flapTop} 110,${160 - wallH - flapTop} 110,${160 - wallH}`} fill="#c39d6e50" stroke="#c39d6e" strokeWidth="1.5" />
-                <polygon points={`130,${160 - wallH} 130,${160 - wallH - flapTop} 165,${160 - wallH - flapTop} 165,${160 - wallH}`} fill="#c39d6e50" stroke="#c39d6e" strokeWidth="1.5" />
+                <polygon
+                  points={`75,${160 - wallH} 75,${160 - wallH - flapTop} 110,${160 - wallH - flapTop} 110,${160 - wallH}`}
+                  fill="#c39d6e50"
+                  stroke="#c39d6e"
+                  strokeWidth="1.5"
+                />
+                <polygon
+                  points={`130,${160 - wallH} 130,${160 - wallH - flapTop} 165,${160 - wallH - flapTop} 165,${160 - wallH}`}
+                  fill="#c39d6e50"
+                  stroke="#c39d6e"
+                  strokeWidth="1.5"
+                />
               </>
             )}
+
+            {/* Tape seal line when top flaps closed */}
             {flapTop > 40 && (
-              <line x1="75" y1={160 - wallH} x2="165" y2={160 - wallH} stroke="#f6c445" strokeWidth="4" />
+              <line
+                x1="75"
+                y1={160 - wallH}
+                x2="165"
+                y2={160 - wallH}
+                stroke="#f6c445"
+                strokeWidth="4"
+              />
             )}
+
+            {/* Al Lulu label */}
             {wallH > 20 && (
-              <text x="120" y={160 - wallH / 2 + 5} fill="#ebd5b3" fontSize="8" fontFamily="monospace" textAnchor="middle">
-                AL LULU PACKAGING
+              <text
+                x="120"
+                y={160 - wallH / 2 + 5}
+                fill="#ebd5b3"
+                fontSize="8"
+                fontFamily="monospace"
+                textAnchor="middle"
+              >
+                AL LULU
               </text>
             )}
           </svg>
@@ -89,16 +156,16 @@ function BoxSVGFallback({ progress, className }) {
   );
 }
 
-// ─── Main Component ────────────────────────────────────────────────────────
+// ─── Main component ────────────────────────────────────────────────────────
 export default function FoldingBox({
   progress = 0,
-  autoRotate = false,
+  autoRotate = true,
   zoomLevel = 1,
   className = "",
 }) {
   const mountRef = useRef(null);
   const [webglError, setWebglError] = useState(null);
-  const sceneStateRef = useRef(null);
+  const sceneRef = useRef(null); // { timeline, orbit, camera, renderer }
 
   // ── Mount scene ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -112,35 +179,32 @@ export default function FoldingBox({
 
     let teardown = () => {};
     try {
-      teardown = buildScene(container, sceneStateRef, setWebglError);
+      teardown = buildScene(container, sceneRef, setWebglError);
     } catch (err) {
       console.error("[FoldingBox] scene init failed:", err);
       setWebglError(String(err));
     }
-    return () => {
-      try {
-        teardown();
-      } catch (_) {}
-    };
+    return () => { try { teardown(); } catch (_) {} };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Sync progress ────────────────────────────────────────────────────────
+  // ── Sync progress → GSAP timeline ───────────────────────────────────────
   useEffect(() => {
-    const s = sceneStateRef.current;
-    if (s) {
-      s.targetProgress = Math.max(0, Math.min(1, progress));
+    const s = sceneRef.current;
+    if (s && s.timeline) {
+      s.timeline.progress(Math.max(0, Math.min(1, progress)));
     }
   }, [progress]);
 
   // ── Sync autoRotate ──────────────────────────────────────────────────────
   useEffect(() => {
-    const s = sceneStateRef.current;
+    const s = sceneRef.current;
     if (s && s.orbit) s.orbit.autoRotate = autoRotate;
   }, [autoRotate]);
 
   // ── Sync zoom ────────────────────────────────────────────────────────────
   useEffect(() => {
-    const s = sceneStateRef.current;
+    const s = sceneRef.current;
     if (s && s.camera) {
       gsap.to(s.camera, {
         duration: 0.25,
@@ -163,20 +227,21 @@ export default function FoldingBox({
   );
 }
 
-// ─── Three.js Scene Builder ────────────────────────────────────────────────
-function buildScene(container, sceneStateRef, setWebglError) {
-  // ── Box params (matches tutorial for realistic RSC proportions) ──────────
+// ─── Three.js scene builder ────────────────────────────────────────────────
+// Faithfully ports the tutorial logic. Returns a teardown function.
+function buildScene(container, sceneRef, setWebglError) {
+  // ── Box params (same as tutorial) ────────────────────────────────────────
   const params = {
-    width: 28,
-    length: 78,
-    depth: 44,
+    width: 27,
+    length: 80,
+    depth: 45,
     thickness: 0.6,
     fluteFreq: 5,
-    flapGap: 0.9,
-    stampSize: [32, 14],
+    flapGap: 1,
+    stampSize: [27, 10],
   };
 
-  // ── Animated angles state (GSAP tweens these) ────────────────────────────
+  // ── Mutable animated state (GSAP will tween these) ──────────────────────
   const animated = {
     openingAngle: 0.02 * Math.PI,
     flapAngles: {
@@ -191,7 +256,7 @@ function buildScene(container, sceneStateRef, setWebglError) {
     },
   };
 
-  // ── Panel mesh hierarchy (mirrors tutorial) ──────────────────────────────
+  // ── Panel mesh hierarchy (mirrors tutorial exactly) ──────────────────────
   const els = {
     group: new THREE.Group(),
     backHalf: {
@@ -210,7 +275,7 @@ function buildScene(container, sceneStateRef, setWebglError) {
     renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true,
-      powerPreference: "high-performance",
+      powerPreference: "default",
       failIfMajorPerformanceCaveat: false,
     });
   } catch (err) {
@@ -218,68 +283,58 @@ function buildScene(container, sceneStateRef, setWebglError) {
     return () => {};
   }
 
-  const W = container.clientWidth || 800;
-  const H = container.clientHeight || 600;
+  const W = container.clientWidth || 640;
+  const H = container.clientHeight || 480;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setSize(W, H);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   container.appendChild(renderer.domElement);
 
-  const onContextLost = (e) => {
-    e.preventDefault();
-    setWebglError("context-lost");
-  };
+  const onContextLost = (e) => { e.preventDefault(); setWebglError("context-lost"); };
   renderer.domElement.addEventListener("webglcontextlost", onContextLost, false);
 
-  // ── Scene & Camera ───────────────────────────────────────────────────────
+  // ── Scene & camera ───────────────────────────────────────────────────────
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(42, W / H, 10, 1000);
-  camera.position.set(48, 82, 118);
+  const camera = new THREE.PerspectiveCamera(45, W / H, 10, 1000);
+  camera.position.set(40, 90, 110);
 
   // ── Lighting ─────────────────────────────────────────────────────────────
-  const ambientLight = new THREE.AmbientLight(0xfff5eb, 0.7);
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
   scene.add(ambientLight);
 
   const lightHolder = new THREE.Group();
-  const topLight = new THREE.PointLight(0xfff0da, 0.7);
-  topLight.position.set(-25, 280, 20);
+  const topLight = new THREE.PointLight(0xffffff, 0.5);
+  topLight.position.set(-30, 300, 0);
   lightHolder.add(topLight);
-
-  const sideLight = new THREE.PointLight(0xffeedd, 0.85);
-  sideLight.position.set(60, 20, 160);
+  const sideLight = new THREE.PointLight(0xffffff, 0.7);
+  sideLight.position.set(50, 0, 150);
   lightHolder.add(sideLight);
-
-  const fillLight = new THREE.DirectionalLight(0xffffff, 0.35);
-  fillLight.position.set(-80, 40, -60);
-  lightHolder.add(fillLight);
-
   scene.add(lightHolder);
 
-  // ── Authentic UAE Kraft Cardboard Material ───────────────────────────────
+  // ── Material ─────────────────────────────────────────────────────────────
   const material = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(0xbba078),
-    roughness: 0.82,
-    metalness: 0.03,
+    color: new THREE.Color(0xDFD3C5),
     side: THREE.DoubleSide,
   });
+  els.group.traverse((c) => { if (c.isMesh) c.material = material; });
 
   // ── OrbitControls ────────────────────────────────────────────────────────
   const orbit = new OrbitControls(camera, renderer.domElement);
   orbit.enableZoom = false;
   orbit.enablePan = false;
   orbit.enableDamping = true;
-  orbit.dampingFactor = 0.06;
-  orbit.autoRotate = false;
-  orbit.autoRotateSpeed = 0.3;
+  orbit.autoRotate = true;
+  orbit.autoRotateSpeed = 0.25;
 
-  // ── Geometry Generators (3-Ply Corrugation) ──────────────────────────────
+  // ── Geometry helpers (ported 1-to-1 from tutorial) ───────────────────────
   function createSideGeometry(baseGeometry, size, folds, hasMiddleLayer) {
     const geometriesToMerge = [];
 
     function getLayerGeometry(offset) {
       const layerGeometry = baseGeometry.clone();
       const positionAttr = layerGeometry.attributes.position;
+      // need to mark as needsUpdate after modification
       for (let i = 0; i < positionAttr.count; i++) {
         const x = positionAttr.getX(i);
         const y = positionAttr.getY(i);
@@ -310,8 +365,12 @@ function buildScene(container, sceneStateRef, setWebglError) {
       );
     }
 
+    // mergeGeometries (Three.js v0.160+) — safe call with null guard
     const merged = mergeGeometries(geometriesToMerge, false);
-    if (!merged) return baseGeometry.clone();
+    if (!merged) {
+      // Fallback: just return a plain plane if merge fails
+      return baseGeometry.clone();
+    }
     merged.computeVertexNormals();
     return merged;
   }
@@ -378,6 +437,7 @@ function buildScene(container, sceneStateRef, setWebglError) {
         els[half][side].side.geometry = sideGeometry;
         els[half][side].bottom.geometry = bottomGeometry;
 
+        // Apply material to all newly created meshes
         els[half][side].top.material = material;
         els[half][side].side.material = material;
         els[half][side].bottom.material = material;
@@ -389,178 +449,103 @@ function buildScene(container, sceneStateRef, setWebglError) {
     updatePanelsTransform();
   }
 
-  // ── Al Lulu Packaging High-Contrast Branding Stamp (1024×480) ────────────
-  const STAMP_W = 1024;
-  const STAMP_H = 480;
+  // ── Al Lulu Packaging stamp (canvas texture) ─────────────────────────────
+  // High-res canvas: 4× scale so text is sharp on the PlaneGeometry
+  const STAMP_W = 640;
+  const STAMP_H = 280;
 
-  function createStampCanvas() {
+  function createStamp() {
     const canvas = document.createElement("canvas");
     canvas.width = STAMP_W;
     canvas.height = STAMP_H;
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
 
-    // Crisp card base
-    ctx.fillStyle = "#faf5ea";
+    // ── Cream background ────────────────────────────────────────────────────
+    ctx.fillStyle = "#f5ede0";
     ctx.fillRect(0, 0, STAMP_W, STAMP_H);
 
-    // Thick industrial dark outline
-    ctx.strokeStyle = "#1b140b";
-    ctx.lineWidth = 10;
+    // ── Outer border ────────────────────────────────────────────────────────
+    ctx.strokeStyle = "#2b1d0e";
+    ctx.lineWidth = 6;
     ctx.strokeRect(6, 6, STAMP_W - 12, STAMP_H - 12);
 
-    // Top Header Banner (Deep rich charcoal)
-    ctx.fillStyle = "#151009";
-    ctx.fillRect(6, 6, STAMP_W - 12, 175);
+    // ── Header band (dark charcoal) ─────────────────────────────────────────
+    ctx.fillStyle = "#1e1309";
+    ctx.fillRect(6, 6, STAMP_W - 12, STAMP_H * 0.38);
 
-    // Gold/Amber dividing accent line
-    ctx.fillStyle = "#d49a2a";
-    ctx.fillRect(6, 181, STAMP_W - 12, 10);
+    // ── Amber accent stripe below header ────────────────────────────────────
+    ctx.fillStyle = "#c8860a";
+    ctx.fillRect(6, STAMP_H * 0.38, STAMP_W - 12, 6);
 
-    // Tagline in amber inside header
-    ctx.fillStyle = "#e0ad3d";
-    ctx.font = "bold 28px 'JetBrains Mono', monospace";
-    ctx.textAlign = "left";
-    ctx.fillText("SHARJAH, U.A.E.  •  EST. 2013", 40, 58);
-
-    // High-visibility Company Name (large, bold, sharp)
+    // ── Company name (white on dark header) ─────────────────────────────────
     ctx.fillStyle = "#ffffff";
-    ctx.font = "900 78px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-    ctx.fillText("AL LULU PACKAGING", 40, 142);
-
-    // Subtitle badge on the right of header
-    ctx.fillStyle = "#d49a2a";
-    ctx.fillRect(STAMP_W - 220, 28, 180, 40);
-    ctx.fillStyle = "#151009";
-    ctx.font = "bold 20px monospace";
-    ctx.textAlign = "center";
-    ctx.fillText("GRADE A • 3-PLY", STAMP_W - 130, 55);
-
-    // Body content: Industrial shipping markings
-    ctx.fillStyle = "#1b140b";
+    ctx.font = "bold 54px sans-serif";
     ctx.textAlign = "left";
-    ctx.font = "bold 38px sans-serif";
-    ctx.fillText("↑↑  THIS SIDE UP  /  HANDLE WITH CARE", 40, 260);
+    ctx.fillText("AL LULU PACKAGING", 24, STAMP_H * 0.29);
 
-    ctx.font = "bold 28px monospace";
-    ctx.fillStyle = "#3d2b18";
-    ctx.fillText("SPEC: RSC CORRUGATED CONTAINER • HEAVY DUTY", 40, 315);
+    // ── Tagline in amber inside header ──────────────────────────────────────
+    ctx.fillStyle = "#c8a44a";
+    ctx.font = "bold 20px monospace";
+    ctx.fillText("SHARJAH, U.A.E.  •  EST. 2013", 24, STAMP_H * 0.11);
 
-    // Barcode lines
-    ctx.fillStyle = "#1b140b";
-    let bx = 40;
-    const bws = [4,3,8,3,6,4,10,3,5,7,3,9,4,3,8,5,3,6,10,4,7,3,5,10,4,6,3,8,5,7];
+    // ── Body section – dark text on cream ───────────────────────────────────
+    ctx.fillStyle = "#2b1d0e";
+    ctx.font = "bold 22px sans-serif";
+    ctx.fillText("↑  THIS SIDE UP", 24, STAMP_H * 0.62);
+
+    ctx.font = "20px monospace";
+    ctx.fillText("CORRUGATED CONTAINER  •  3-PLY RSC", 24, STAMP_H * 0.78);
+
+    // ── Barcode strip ───────────────────────────────────────────────────────
+    ctx.fillStyle = "#2b1d0e";
+    let bx = 24;
+    const bws = [3,2,7,2,5,3,9,2,4,6,2,8,3,2,7,4,2,5,8,3,6,2,4,9,3,5,2,7,4,6];
     for (const bw of bws) {
-      ctx.fillRect(bx, 350, bw, 55);
-      bx += bw + 5;
+      ctx.fillRect(bx, STAMP_H * 0.84, bw, STAMP_H * 0.1);
+      bx += bw + 3;
     }
-
-    ctx.font = "22px monospace";
-    ctx.fillText("BATCH: ALP-SHJ-2026", 40, 440);
-    ctx.fillText("MAX GROSS WT: 45 KG", 420, 440);
-
-    // Stamp emblem circle on bottom right
-    ctx.strokeStyle = "#b58228";
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.arc(STAMP_W - 100, 350, 65, 0, Math.PI * 2);
-    ctx.stroke();
-
-    ctx.fillStyle = "#b58228";
-    ctx.font = "bold 16px monospace";
-    ctx.textAlign = "center";
-    ctx.fillText("QUALITY", STAMP_W - 100, 335);
-    ctx.fillText("PASSED", STAMP_W - 100, 355);
-    ctx.fillText("SHARJAH", STAMP_W - 100, 375);
+    ctx.font = "14px monospace";
+    ctx.fillText("ALLULU-CORR-36752", 24, STAMP_H * 0.99);
 
     return canvas;
   }
 
-  // Create Front & Back Stamp Meshes
-  let frontStamp = null;
-  let backStamp = null;
-  const stampCanvas = createStampCanvas();
+  let stamp = null;
+  const stampCanvas = createStamp();
   if (stampCanvas) {
     const stampTexture = new THREE.CanvasTexture(stampCanvas);
     stampTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-
+    // Make stamp larger so it fills most of the front panel
     const stampGeom = new THREE.PlaneGeometry(
-      params.length * 0.72,
-      params.depth * 0.65
+      params.length * 0.7,
+      params.depth * 0.62
     );
     const stampMat = new THREE.MeshBasicMaterial({
       map: stampTexture,
-      transparent: false,
+      transparent: false,  // solid — no blending with kraft colour
       depthWrite: true,
     });
-
-    frontStamp = new THREE.Mesh(stampGeom, stampMat);
-    scene.add(frontStamp);
-
-    const backStampMat = new THREE.MeshBasicMaterial({
-      map: stampTexture,
-      transparent: false,
-      depthWrite: true,
-    });
-    backStamp = new THREE.Mesh(stampGeom, backStampMat);
-    backStamp.rotation.y = Math.PI;
-    scene.add(backStamp);
+    stamp = new THREE.Mesh(stampGeom, stampMat);
+    scene.add(stamp);
   }
 
-  // ── Top Sealing Tape Mesh (appears when closed) ───────────────────────────
-  let tapeMesh = null;
-  const tapeCanvas = document.createElement("canvas");
-  tapeCanvas.width = 512;
-  tapeCanvas.height = 64;
-  const tCtx = tapeCanvas.getContext("2d");
-  if (tCtx) {
-    // Amber kraft tape texture
-    tCtx.fillStyle = "#cfa058";
-    tCtx.fillRect(0, 0, 512, 64);
-    // Darker borders
-    tCtx.fillStyle = "#b5853f";
-    tCtx.fillRect(0, 0, 512, 3);
-    tCtx.fillRect(0, 61, 512, 3);
-    // Security text
-    tCtx.fillStyle = "#2c1c0a";
-    tCtx.font = "bold 18px monospace";
-    tCtx.textAlign = "center";
-    tCtx.fillText("🔒 AL LULU PACKAGING • SEALED & SECURED •", 256, 38);
-
-    const tapeTexture = new THREE.CanvasTexture(tapeCanvas);
-    tapeTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-    tapeTexture.wrapS = THREE.RepeatWrapping;
-    tapeTexture.repeat.set(2, 1);
-
-    const tapeGeom = new THREE.PlaneGeometry(params.length * 0.95, 7.5);
-    const tapeMat = new THREE.MeshStandardMaterial({
-      map: tapeTexture,
-      transparent: true,
-      opacity: 0,
-      roughness: 0.5,
-    });
-    tapeMesh = new THREE.Mesh(tapeGeom, tapeMat);
-    tapeMesh.rotation.x = -Math.PI * 0.5;
-    tapeMesh.position.y = 0.5 * params.depth + params.thickness + 0.2;
-    scene.add(tapeMesh);
-  }
-
-  // ── Transform logic ──────────────────────────────────────────────────────
+  // ── Transform logic (1-to-1 port from tutorial) ──────────────────────────
   function updatePanelsTransform() {
     // Place width-sides at ends of length-sides
     els.frontHalf.width.side.position.x = 0.5 * params.length;
     els.backHalf.width.side.position.x = -0.5 * params.length;
 
-    // Rotate width-sides 0 → 90 deg
+    // Rotate width-sides from 0 → 90 deg
     els.frontHalf.width.side.rotation.y = animated.openingAngle;
     els.backHalf.width.side.rotation.y = animated.openingAngle;
 
-    // Move length-sides to keep box centered
+    // Move length-sides to keep box centered (cos: 1→0)
     const cos = Math.cos(animated.openingAngle);
     els.frontHalf.length.side.position.x = -0.5 * cos * params.width;
     els.backHalf.length.side.position.x = 0.5 * cos * params.width;
 
-    // Move length-sides to define box inner space
+    // Move length-sides to define box inner space (sin: 0→1)
     const sin = Math.sin(animated.openingAngle);
     els.frontHalf.length.side.position.z = 0.5 * sin * params.width;
     els.backHalf.length.side.position.z = -0.5 * sin * params.width;
@@ -576,157 +561,108 @@ function buildScene(container, sceneStateRef, setWebglError) {
     els.backHalf.width.bottom.rotation.x = -animated.flapAngles.backHalf.width.bottom;
     els.backHalf.length.bottom.rotation.x = -animated.flapAngles.backHalf.length.bottom;
 
-    // Front stamp tracks front panel
-    if (frontStamp) {
-      frontStamp.position.copy(els.frontHalf.length.side.position);
-      frontStamp.position.z += params.thickness + 0.15;
-    }
-
-    // Back stamp tracks back panel
-    if (backStamp) {
-      backStamp.position.copy(els.backHalf.length.side.position);
-      backStamp.position.z -= params.thickness + 0.15;
+    // Stamp centered on the front panel surface
+    if (stamp) {
+      stamp.position.copy(els.frontHalf.length.side.position);
+      // No X offset — stamp is centered on the panel
+      stamp.position.x += 0;
+      stamp.position.y += 0;
+      // Float just above the panel surface
+      stamp.position.z += params.thickness + 0.15;
     }
   }
 
-  // ── Build Scene Graph ────────────────────────────────────────────────────
+  // ── Build scene graph ────────────────────────────────────────────────────
   scene.add(els.group);
   setGeometryHierarchy();
   createBoxElements();
 
-  // ── GSAP Timeline (drives the box folding & closing sequence) ────────────
+  // ── GSAP Timeline (paused, driven by scroll progress prop) ───────────────
+  // Exactly the same keyframe sequence as the tutorial
   const timeline = gsap.timeline({
     paused: true,
     onUpdate: updatePanelsTransform,
   });
 
   timeline
-    // 1. Box walls rise up 90° into upright structure
     .to(animated, {
       duration: 1,
       openingAngle: 0.5 * Math.PI,
       ease: "power1.inOut",
     })
-    // 2. Bottom width flaps fold inwards
     .to(
       [animated.flapAngles.backHalf.width, animated.flapAngles.frontHalf.width],
       { duration: 0.6, bottom: 0.6 * Math.PI, ease: "back.in(3)" },
       0.9
     )
-    // 3. Bottom back length flap folds
     .to(
       animated.flapAngles.backHalf.length,
       { duration: 0.7, bottom: 0.5 * Math.PI, ease: "back.in(2)" },
       1.1
     )
-    // 4. Bottom front length flap folds shut & locks floor
     .to(
       animated.flapAngles.frontHalf.length,
       { duration: 0.8, bottom: 0.49 * Math.PI, ease: "back.in(3)" },
       1.4
     )
-    // 5. Top width flaps fold down
     .to(
       [animated.flapAngles.backHalf.width, animated.flapAngles.frontHalf.width],
       { duration: 0.6, top: 0.6 * Math.PI, ease: "back.in(3)" },
       1.4
     )
-    // 6. Top back length flap folds down
     .to(
       animated.flapAngles.backHalf.length,
       { duration: 0.7, top: 0.5 * Math.PI, ease: "back.in(3)" },
       1.7
     )
-    // 7. Top front length flap folds down flush to close the box
     .to(
       animated.flapAngles.frontHalf.length,
       { duration: 0.9, top: 0.49 * Math.PI, ease: "back.in(4)" },
       1.8
     );
 
-  // ── Render Loop with 60fps Dampening/Lerping ──────────────────────────────
-  let targetProgress = 0;
-  let currentProgress = 0;
+  // ── Render loop ──────────────────────────────────────────────────────────
   let rafId;
-
   const render = () => {
     rafId = requestAnimationFrame(render);
-
-    // Smooth lerp external scroll progress into timeline
-    const diff = targetProgress - currentProgress;
-    if (Math.abs(diff) > 0.0005) {
-      currentProgress += diff * 0.12;
-      timeline.progress(currentProgress);
-
-      // Fade in top sealing tape when closed
-      if (tapeMesh) {
-        const tapeAlpha = Math.max(0, Math.min(0.95, (currentProgress - 0.84) / 0.14));
-        tapeMesh.material.opacity = tapeAlpha;
-      }
-    }
-
     orbit.update();
     lightHolder.quaternion.copy(camera.quaternion);
     renderer.render(scene, camera);
   };
   render();
 
-  // ── Resize ─────────────────────────────────────────────────────────
+  // ── Resize ───────────────────────────────────────────────────────────────
   const handleResize = () => {
-    const w = container.clientWidth || 800;
-    const h = container.clientHeight || 600;
+    const w = container.clientWidth || 640;
+    const h = container.clientHeight || 480;
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     renderer.setSize(w, h);
   };
   window.addEventListener("resize", handleResize);
 
-  // Expose state controller
-  const stateObj = {
-    set targetProgress(val) {
-      targetProgress = val;
-    },
-    orbit,
-    camera,
-    renderer,
-  };
-  sceneStateRef.current = stateObj;
+  // Expose refs for prop-sync effects
+  sceneRef.current = { timeline, orbit, camera, renderer };
 
   // ── Teardown ─────────────────────────────────────────────────────────────
   return () => {
     window.removeEventListener("resize", handleResize);
     if (rafId) cancelAnimationFrame(rafId);
-    try {
-      timeline.kill();
-    } catch (_) {}
-    try {
-      orbit.dispose();
-    } catch (_) {}
+    try { timeline.kill(); } catch (_) {}
+    try { orbit.dispose(); } catch (_) {}
     if (renderer.domElement) {
       renderer.domElement.removeEventListener("webglcontextlost", onContextLost);
       if (container.contains(renderer.domElement)) container.removeChild(renderer.domElement);
     }
-    try {
-      renderer.dispose();
-    } catch (_) {}
+    try { renderer.dispose(); } catch (_) {}
     material.dispose();
     els.group.traverse((obj) => {
       if (obj.geometry) try { obj.geometry.dispose(); } catch (_) {}
     });
-    if (frontStamp) {
-      try { frontStamp.geometry.dispose(); } catch (_) {}
-      try { frontStamp.material.map.dispose(); } catch (_) {}
-      try { frontStamp.material.dispose(); } catch (_) {}
-    }
-    if (backStamp) {
-      try { backStamp.geometry.dispose(); } catch (_) {}
-      try { backStamp.material.map.dispose(); } catch (_) {}
-      try { backStamp.material.dispose(); } catch (_) {}
-    }
-    if (tapeMesh) {
-      try { tapeMesh.geometry.dispose(); } catch (_) {}
-      try { tapeMesh.material.map.dispose(); } catch (_) {}
-      try { tapeMesh.material.dispose(); } catch (_) {}
+    if (stamp) {
+      try { stamp.geometry.dispose(); } catch (_) {}
+      try { stamp.material.map.dispose(); } catch (_) {}
+      try { stamp.material.dispose(); } catch (_) {}
     }
   };
 }
