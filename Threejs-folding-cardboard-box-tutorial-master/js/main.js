@@ -283,33 +283,62 @@ function createSideGeometry(baseGeometry, size, folds, hasMiddleLayer) {
 
 function createCopyright() {
     const canvas = document.createElement('canvas');
-    canvas.width = box.params.copyrightSize[0] * 10;
-    canvas.height = box.params.copyrightSize[1] * 10;
-    const planeGeometry = new THREE.PlaneGeometry(box.params.copyrightSize[0], box.params.copyrightSize[1]);
+    canvas.width = 640;
+    canvas.height = 280;
+    const planeGeometry = new THREE.PlaneGeometry(box.params.copyrightSize[0] * 1.5, box.params.copyrightSize[1] * 1.5);
 
     const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.width);
-    ctx.fillStyle = '#000000';
-    ctx.font = '22px sans-serif';
-    ctx.textAlign = 'end';
-    ctx.fillText('ksenia-k.com', canvas.width - 30, 30);
-    ctx.fillText('codepen.io/ksenia-k', canvas.width - 30, 70);
+    // Cream background badge
+    ctx.fillStyle = '#f8f4eb';
+    ctx.fillRect(0, 0, 640, 280);
 
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(canvas.width - 160, 35);
-    ctx.lineTo(canvas.width - 30, 35);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(canvas.width - 228, 77);
-    ctx.lineTo(canvas.width - 30, 77);
-    ctx.stroke();
+    // Deep border
+    ctx.strokeStyle = '#2b1d0e';
+    ctx.lineWidth = 8;
+    ctx.strokeRect(4, 4, 632, 272);
+
+    // Header bar
+    ctx.fillStyle = '#1e140a';
+    ctx.fillRect(4, 4, 632, 105);
+
+    // Gold accent bar
+    ctx.fillStyle = '#c8860a';
+    ctx.fillRect(4, 109, 632, 6);
+
+    // Subtitle inside header
+    ctx.fillStyle = '#c8a44a';
+    ctx.font = 'bold 22px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('SHARJAH, U.A.E.  •  EST. 2013', 24, 38);
+
+    // Main Brand Name
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 48px sans-serif';
+    ctx.fillText('AL LULU PACKAGING', 24, 88);
+
+    // Body specs
+    ctx.fillStyle = '#2b1d0e';
+    ctx.font = 'bold 24px sans-serif';
+    ctx.fillText('↑↑  THIS SIDE UP', 24, 165);
+
+    ctx.font = '20px monospace';
+    ctx.fillText('CORRUGATED RSC CONTAINER • 3-PLY', 24, 205);
+
+    // Barcode
+    const bws = [3,2,6,3,4,2,8,2,4,5,2,7,3,2,6,4,2,5,7,3,5,2,4,8,3,4,2,6,4,5];
+    let bx = 24;
+    for (const bw of bws) {
+        ctx.fillRect(bx, 222, bw, 28);
+        bx += bw + 3;
+    }
+    ctx.font = '14px monospace';
+    ctx.fillText('ALLULU-CORR-36752', 24, 268);
 
     const texture = new THREE.CanvasTexture(canvas);
     copyright = new THREE.Mesh(planeGeometry, new THREE.MeshBasicMaterial({
         map: texture,
-        transparent: true,
-        opacity: .5
+        transparent: false,
+        depthWrite: true,
     }));
 
     scene.add(copyright);
